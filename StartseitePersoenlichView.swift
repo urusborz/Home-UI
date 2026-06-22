@@ -5,6 +5,11 @@ struct StartseitePersoenlichView: View {
     @Binding var selectedTab: TabItem
     @Binding var selectedTrackerSection: TrackerSection
     @EnvironmentObject var store: DataStore
+    @State private var confettiTrigger = 0
+
+    private var habitsAllDone: Bool {
+        !store.habits.isEmpty && store.habits.allSatisfy(\.isDone)
+    }
 
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: .now)
@@ -44,8 +49,11 @@ struct StartseitePersoenlichView: View {
                 // Daily overview (connects all daily trackers)
                 dailyOverview
 
-                // Prayer preview
+                // Prayer preview (sun arc)
                 prayerPreview
+
+                // Today timeline
+                todayTimelineCard
 
                 // Calendar + Reminders
                 HStack(alignment: .top, spacing: 14) {
@@ -67,38 +75,111 @@ struct StartseitePersoenlichView: View {
             .padding(.horizontal, AppTheme.phoneScreenPadding)
             .padding(.bottom, 20)
         }
+        .overlay(ConfettiView(trigger: confettiTrigger))
+        .onChange(of: habitsAllDone) { _, done in
+            if done { Haptics.success(); confettiTrigger += 1 }
+        }
     }
 
-    // MARK: - Daily Overview (aggregates today's progress)
+    // MARK: - Daily Overview (activity rings)
 
     private var dailyOverview: some View {
         let slots = store.prayerSlots()
         let prayersDone = slots.filter { $0.isTrackable && $0.isDone }.count
         let habitsDone = store.habits.filter(\.isDone).count
         let habitsTotal = store.habits.count
-        let withdrawalTotal = store.withdrawalItems.count
         let longestStreak = store.withdrawalItems.map { $0.cleanDays() }.max() ?? 0
-        let openReminders = store.personalReminders.filter { !$0.isCompleted }.count
+        let hasWithdrawal = !store.withdrawalItems.isEmpty
 
-        let totalUnits = 5 + habitsTotal
-        let doneUnits = prayersDone + habitsDone
-        let progress = totalUnits == 0 ? 0 : Double(doneUnits) / Double(totalUnits)
+        // Tasks due today (done vs total)
+        let cal = Calendar.current
+        let dueToday = store.personalReminders.filter { r in
+            guard let due = r.dueDate else { return false }
+            return cal.isDateInToday(due)
+        }
+        let tasksDone = dueToday.filter(\.isCompleted).count
+        let tasksTotal = dueToday.count
+
+        let gebeteP = Double(prayersDone) / 5.0
+        let habitsP = habitsTotal == 0 ? 0 : Double(habitsDone) / Double(habitsTotal)
+        let tasksP = tasksTotal == 0 ? 0 : Double(tasksDone) / Double(tasksTotal)
+
+        let totalUnits = 5 + habitsTotal + tasksTotal
+        let doneUnits = prayersDone + habitsDone + tasksDone
+        let overall = totalUnits == 0 ? 0 : Int(Double(doneUnits) / Double(totalUnits) * 100)
 
         return VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "Heute im Überblick")
             HStack(spacing: 18) {
-                CircularProgressRing(progress: progress,
-                                     centerTop: "\(Int(progress * 100))%",
-                                     centerBottom: "erledigt")
-                VStack(spacing: 12) {
-                    MiniStat(label: "Gebete", value: "\(prayersDone)/5", color: AppTheme.accentAmber)
-                    MiniStat(label: "Habits", value: "\(habitsDone)/\(habitsTotal)", color: AppTheme.accentGreen)
-                    MiniStat(label: "Entzug", value: withdrawalTotal == 0 ? "0 aktiv" : "\(longestStreak) Tage", color: AppTheme.accentBlue)
-                    MiniStat(label: "Offene Aufgaben", value: "\(openReminders)", color: AppTheme.accentPurple)
+                ActivityRings(
+                    rings: [
+                        (progress: gebeteP, color: AppTheme.accentAmber),
+                        (progress: habitsP, color: AppTheme.accentGreen),
+                        (progress: tasksP, color: AppTheme.accent)
+                    ],
+                    centerLabel: "\(overall)%",
+                    centerSub: "erledigt"
+                )
+                VStack(spacing: 11) {
+                    ringLegend("Gebete", "\(prayersDone)/5", AppTheme.accentAmber)
+                    ringLegend("Habits", "\(habitsDone)/\(habitsTotal)", AppTheme.accentGreen)
+                    ringLegend("Aufgaben", tasksTotal == 0 ? "–" : "\(tasksDone)/\(tasksTotal)", AppTheme.accent)
+                    if hasWithdrawal {
+                        HStack(spacing: 10) {
+                            Image(systemName: "flame.fill").font(.system(size: 11)).foregroundColor(AppTheme.accentAmber)
+                            Text("Entzug").font(.system(size: 13)).foregroundColor(AppTheme.textSecondary)
+                            Spacer()
+                            Text("\(longestStreak) Tage").font(.system(size: 13, weight: .semibold)).foregroundColor(AppTheme.textPrimary)
+                        }
+                    }
                 }
             }
         }
         .glassCard()
+    }
+
+    private func ringLegend(_ label: String, _ value: String, _ color: Color) -> some View {
+        HStack(spacing: 10) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).font(.system(size: 13)).foregroundColor(AppTheme.textSecondary)
+            Spacer()
+            Text(value).font(.system(size: 13, weight: .semibold)).foregroundColor(AppTheme.textPrimary)
+        }
+    }
+
+    // MARK: - Today Timeline
+
+    private var todayTimelineCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Heute")
+            if todayEntries.isEmpty {
+                Text("Heute nichts geplant").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary)
+                    .padding(.vertical, 4)
+            } else {
+                TodayTimeline(entries: todayEntries, now: Date())
+            }
+        }
+        .glassCard()
+    }
+
+    private var todayEntries: [TimelineEntry] {
+        let cal = Calendar.current
+        let today = Date()
+        var arr: [TimelineEntry] = []
+
+        for s in store.prayerSlots() where s.isTrackable {
+            arr.append(TimelineEntry(time: s.time, title: s.name, kind: .prayer, done: s.isDone))
+        }
+        for occ in store.eventOccurrences(store.personalEvents, on: today) where occ.event.hasTime {
+            arr.append(TimelineEntry(time: occ.date, title: occ.event.title, kind: .event))
+        }
+        for r in store.personalReminders {
+            guard let due = r.dueDate, cal.isDateInToday(due) else { continue }
+            let c = cal.dateComponents([.hour, .minute], from: due)
+            guard (c.hour ?? 0) != 0 || (c.minute ?? 0) != 0 else { continue }
+            arr.append(TimelineEntry(time: due, title: r.title, kind: .task, done: r.isCompleted))
+        }
+        return arr.sorted { $0.time < $1.time }
     }
 
     // MARK: - Prayer Preview (live IZW Vienna times, tap dots to mark done)
@@ -132,25 +213,11 @@ struct StartseitePersoenlichView: View {
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
             .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.accentAmber.opacity(0.2), lineWidth: 0.5))
 
-            HStack(spacing: 0) {
-                ForEach(trackable) { prayer in
-                    Button { store.togglePrayer(name: prayer.name) } label: {
-                        VStack(spacing: 5) {
-                            ZStack {
-                                Circle().fill(prayer.isDone ? AppTheme.accentGreen.opacity(0.2) : AppTheme.controlBackground).frame(width: 32, height: 32)
-                                Image(systemName: prayer.isDone ? "checkmark" : (prayer.isNext ? "circle.dotted" : "circle"))
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(prayer.isDone ? AppTheme.accentGreen : (prayer.isNext ? AppTheme.accentAmber : AppTheme.textTertiary))
-                            }
-                            Text(prayer.name).font(.system(size: 10, weight: .medium)).foregroundColor(prayer.isNext ? AppTheme.accentAmber : AppTheme.textTertiary)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            PrayerSunArc(slots: slots, now: Date())
         }
         .glassCard()
+        .contentShape(Rectangle())
+        .onTapGesture { openTracker(.gebete) }
     }
 
     // MARK: - Calendar Preview
@@ -222,24 +289,33 @@ struct StartseitePersoenlichView: View {
             if store.habits.isEmpty {
                 Text("Noch keine Habits").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary)
             } else {
-                HStack(spacing: 10) {
-                    ForEach(store.habits.prefix(4)) { habit in
-                        Button { store.toggleHabit(id: habit.id) } label: {
-                            VStack(spacing: 8) {
-                                ZStack {
-                                    Circle().stroke(AppTheme.glassBorder, lineWidth: 3).frame(width: 44, height: 44)
-                                    if habit.isDone {
-                                        Circle().fill(AppTheme.accentGreen.opacity(0.2)).frame(width: 44, height: 44)
-                                        Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundColor(AppTheme.accentGreen)
-                                    } else {
-                                        Text("\(habit.streak)").font(.system(size: 13, weight: .semibold)).foregroundColor(AppTheme.textSecondary)
+                let done = store.habits.filter(\.isDone).count
+                HStack(spacing: 14) {
+                    LiquidFillCircle(
+                        progress: Double(done) / Double(store.habits.count),
+                        size: 60,
+                        color: AppTheme.accentGreen,
+                        centerLabel: "\(done)/\(store.habits.count)"
+                    )
+                    HStack(spacing: 8) {
+                        ForEach(store.habits.prefix(3)) { habit in
+                            Button { store.toggleHabit(id: habit.id) } label: {
+                                VStack(spacing: 8) {
+                                    ZStack {
+                                        Circle().stroke(AppTheme.glassBorder, lineWidth: 3).frame(width: 44, height: 44)
+                                        if habit.isDone {
+                                            Circle().fill(AppTheme.accentGreen.opacity(0.2)).frame(width: 44, height: 44)
+                                            Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundColor(AppTheme.accentGreen)
+                                        } else {
+                                            Text("\(habit.streak)").font(.system(size: 13, weight: .semibold)).foregroundColor(AppTheme.textSecondary)
+                                        }
                                     }
+                                    Text(habit.title).font(.system(size: 11, weight: .medium)).foregroundColor(habit.isDone ? AppTheme.textPrimary : AppTheme.textTertiary).lineLimit(1)
                                 }
-                                Text(habit.title).font(.system(size: 11, weight: .medium)).foregroundColor(habit.isDone ? AppTheme.textPrimary : AppTheme.textTertiary).lineLimit(1)
+                                .frame(maxWidth: .infinity)
                             }
-                            .frame(maxWidth: .infinity)
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }

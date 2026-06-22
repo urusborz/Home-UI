@@ -74,23 +74,34 @@ struct HabitsView: View {
     @EnvironmentObject var store: DataStore
     @State private var showingAdd = false
     @State private var editing: Habit? = nil
+    @State private var confetti = 0
 
     private var completed: Int { store.habits.filter(\.isDone).count }
     private var progress: Double { store.habits.isEmpty ? 0 : Double(completed) / Double(store.habits.count) }
+    private var allDone: Bool { !store.habits.isEmpty && completed == store.habits.count }
 
     var body: some View {
         VStack(spacing: 16) {
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 HStack {
                     SectionHeader(title: "Tägliche Habits", subtitle: "\(completed)/\(store.habits.count)")
                     AddButton { showingAdd = true }
                 }
-                ProgressBar(progress: progress)
-                if let best = store.habits.map(\.streak).max(), best > 0 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "flame.fill").font(.system(size: 11)).foregroundColor(AppTheme.accentAmber)
-                        Text("Beste Serie: \(best) \(best == 1 ? "Tag" : "Tage")")
-                            .font(.system(size: 12, weight: .medium)).foregroundColor(AppTheme.textSecondary)
+                if !store.habits.isEmpty {
+                    HStack(spacing: 16) {
+                        LiquidFillCircle(progress: progress, size: 72, color: AppTheme.accentGreen,
+                                         centerLabel: "\(Int(progress * 100))%")
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("\(completed) von \(store.habits.count) erledigt")
+                                .font(.system(size: 14, weight: .medium)).foregroundColor(AppTheme.textPrimary)
+                            if let best = store.habits.map(\.streak).max(), best > 0 {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "flame.fill").font(.system(size: 11)).foregroundColor(AppTheme.accentAmber)
+                                    Text("Beste Serie: \(best) \(best == 1 ? "Tag" : "Tage")")
+                                        .font(.system(size: 12, weight: .medium)).foregroundColor(AppTheme.textSecondary)
+                                }
+                            }
+                        }
                         Spacer()
                     }
                 }
@@ -118,6 +129,10 @@ struct HabitsView: View {
             HabitSheet(existing: habit, isPresented: Binding(
                 get: { editing != nil }, set: { if !$0 { editing = nil } }
             )).environmentObject(store)
+        }
+        .overlay(ConfettiView(trigger: confetti))
+        .onChange(of: allDone) { _, done in
+            if done { Haptics.success(); confetti += 1 }
         }
     }
 }
@@ -183,6 +198,7 @@ struct HabitSheet: View {
 struct GebeteView: View {
     @EnvironmentObject var store: DataStore
     @State private var notifDenied = false
+    @State private var confetti = 0
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -258,6 +274,10 @@ struct GebeteView: View {
                     .padding(.top, 2)
             }
             .onAppear { NotificationManager.shared.isDenied { notifDenied = $0 } }
+            .overlay(ConfettiView(trigger: confetti))
+            .onChange(of: doneCount) { _, c in
+                if c == 5 { Haptics.success(); confetti += 1 }
+            }
         }
     }
 
