@@ -74,7 +74,7 @@ struct KalenderView: View {
                         withAnimation(.spring(response: 0.3)) { viewMode = .month }
                     }
                 }
-                .background(Color.white.opacity(0.06))
+                .background(AppTheme.controlBackground)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(AppTheme.glassBorder, lineWidth: 0.5))
 
@@ -450,7 +450,7 @@ struct ViewToggleButton: View {
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
                 .foregroundColor(isSelected ? .white : AppTheme.textTertiary)
                 .padding(.vertical, 8).padding(.horizontal, 22)
-                .background(Group { if isSelected { Capsule().fill(Color.white.opacity(0.1)).padding(3) } })
+                .background(Group { if isSelected { Capsule().fill(AppTheme.selectedControlBackground).padding(3) } })
         }
         .buttonStyle(.plain)
     }

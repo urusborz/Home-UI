@@ -32,7 +32,7 @@ struct ErinnerungenView: View {
                                 .font(.system(size: 12))
                                 .foregroundColor(AppTheme.textTertiary)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
-                                .background(Color.white.opacity(0.06))
+                                .background(AppTheme.controlBackground)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)

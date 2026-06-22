@@ -41,7 +41,7 @@ struct TrackerView: View {
                                 .font(.system(size: 14, weight: section == sec ? .semibold : .regular, design: .rounded))
                                 .foregroundColor(section == sec ? .white : AppTheme.textTertiary)
                                 .padding(.vertical, 8).padding(.horizontal, 18)
-                                .background(section == sec ? AppTheme.accentBlue.opacity(0.2) : Color.white.opacity(0.06))
+                                .background(section == sec ? AppTheme.accentBlue.opacity(AppTheme.isLight ? 0.85 : 0.2) : AppTheme.controlBackground)
                                 .clipShape(Capsule())
                                 .overlay(Capsule().stroke(section == sec ? AppTheme.accentBlue.opacity(0.4) : AppTheme.glassBorder, lineWidth: 0.5))
                         }
@@ -482,7 +482,7 @@ struct ShoppingListView: View {
                             .font(.system(size: 12))
                             .foregroundColor(AppTheme.textTertiary)
                             .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(Color.white.opacity(0.06))
+                            .background(AppTheme.controlBackground)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -607,7 +607,7 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.06)).frame(height: 6)
+                RoundedRectangle(cornerRadius: 4).fill(AppTheme.controlBackground).frame(height: 6)
                 RoundedRectangle(cornerRadius: 4).fill(AppTheme.accentGreen)
                     .frame(width: max(0, min(1, progress)) * geo.size.width, height: 6)
             }

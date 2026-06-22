@@ -19,7 +19,7 @@ struct BackupSheet: View {
 
                     // Header
                     HStack {
-                        Text("Backup")
+                        Text("Einstellungen")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(AppTheme.textPrimary)
                         Spacer()
@@ -28,7 +28,7 @@ struct BackupSheet: View {
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(AppTheme.textSecondary)
                                 .frame(width: 34, height: 34)
-                                .background(Color.white.opacity(0.06)).clipShape(Circle())
+                                .background(AppTheme.controlBackground).clipShape(Circle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -43,6 +43,42 @@ struct BackupSheet: View {
                             .background(messageColor.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
                     }
+
+                    // Appearance
+                    VStack(alignment: .leading, spacing: 14) {
+                        SectionHeader(title: "Darstellung")
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionLabel("Modus")
+                            HStack(spacing: 10) {
+                                ForEach(AppAppearance.allCases) { appearance in
+                                    settingsOption(
+                                        title: appearance.title,
+                                        isSelected: store.appAppearance == appearance,
+                                        swatch: appearance == .dark ? Color.black : Color.white
+                                    ) {
+                                        store.setAppearance(appearance)
+                                    }
+                                }
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionLabel("Akzent")
+                            HStack(spacing: 10) {
+                                ForEach(AppAccentTheme.allCases) { theme in
+                                    settingsOption(
+                                        title: theme.title,
+                                        isSelected: store.appAccentTheme == theme,
+                                        swatch: theme.primary
+                                    ) {
+                                        store.setAccentTheme(theme)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .glassCard()
 
                     // Export
                     VStack(alignment: .leading, spacing: 12) {
@@ -133,8 +169,31 @@ struct BackupSheet: View {
         }
         .foregroundColor(filled ? .white : AppTheme.textPrimary)
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .background(filled ? AppTheme.accentBlue.opacity(0.8) : Color.white.opacity(0.06))
+        .background(filled ? AppTheme.accentBlue.opacity(0.8) : AppTheme.controlBackground)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
+    }
+
+    private func settingsOption(title: String, isSelected: Bool, swatch: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(swatch)
+                    .frame(width: 14, height: 14)
+                    .overlay(Circle().stroke(AppTheme.glassBorder, lineWidth: 1))
+                Text(title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundColor(isSelected ? .white : AppTheme.textPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 10)
+            .background(isSelected ? AppTheme.accentBlue.opacity(0.85) : AppTheme.controlBackground)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
+            .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(isSelected ? AppTheme.accentBlue.opacity(0.35) : AppTheme.glassBorder, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
     }
 }

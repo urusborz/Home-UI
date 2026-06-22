@@ -8,7 +8,7 @@ struct HomeApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(store.appAppearance.preferredColorScheme)
         }
     }
 }

@@ -20,11 +20,11 @@ struct ContentView: View {
                     HStack(spacing: 10) {
                         ModeSwitcherView(selectedMode: $selectedMode)
                         Button { showingBackup = true } label: {
-                            Image(systemName: "ellipsis")
+                            Image(systemName: "gearshape.fill")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(AppTheme.textSecondary)
                                 .frame(width: 46, height: 40)
-                                .background(Color.white.opacity(0.06))
+                                .background(AppTheme.controlBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppTheme.glassBorder, lineWidth: 0.5))
                         }
@@ -62,7 +62,7 @@ struct ContentView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(store.appAppearance.preferredColorScheme)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedMode)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedTab)
         .onAppear { store.bootstrapNotifications() }
@@ -91,7 +91,7 @@ struct ModeSwitcherView: View {
                 )
             }
         }
-        .background(Color.white.opacity(0.06))
+        .background(AppTheme.controlBackground)
         .clipShape(Capsule())
         .overlay(Capsule().stroke(AppTheme.glassBorder, lineWidth: 0.5))
     }
@@ -113,7 +113,7 @@ struct ModeSwitcherButton: View {
                     Group {
                         if isSelected {
                             Capsule()
-                                .fill(Color.white.opacity(0.11))
+                                .fill(AppTheme.selectedControlBackground)
                                 .padding(4)
                         }
                     }
@@ -147,7 +147,7 @@ struct BottomNavBarView: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 8)
         .background(.ultraThinMaterial)
-        .background(Color.white.opacity(0.04))
+        .background(AppTheme.controlBackground)
         .clipShape(Capsule())
         .overlay(Capsule().stroke(AppTheme.glassBorder, lineWidth: 0.5))
         .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
@@ -170,14 +170,14 @@ struct TabBarButtonView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
-            .foregroundColor(isSelected ? .white : Color.white.opacity(0.38))
+            .foregroundColor(isSelected ? .white : AppTheme.textTertiary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(
                 Group {
                     if isSelected {
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white.opacity(0.1))
+                            .fill(AppTheme.accentBlue.opacity(AppTheme.isLight ? 0.86 : 0.16))
                     }
                 }
             )

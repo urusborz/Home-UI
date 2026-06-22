@@ -137,7 +137,7 @@ struct StartseitePersoenlichView: View {
                     Button { store.togglePrayer(name: prayer.name) } label: {
                         VStack(spacing: 5) {
                             ZStack {
-                                Circle().fill(prayer.isDone ? AppTheme.accentGreen.opacity(0.2) : Color.white.opacity(0.06)).frame(width: 32, height: 32)
+                                Circle().fill(prayer.isDone ? AppTheme.accentGreen.opacity(0.2) : AppTheme.controlBackground).frame(width: 32, height: 32)
                                 Image(systemName: prayer.isDone ? "checkmark" : (prayer.isNext ? "circle.dotted" : "circle"))
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(prayer.isDone ? AppTheme.accentGreen : (prayer.isNext ? AppTheme.accentAmber : AppTheme.textTertiary))
@@ -227,7 +227,7 @@ struct StartseitePersoenlichView: View {
                         Button { store.toggleHabit(id: habit.id) } label: {
                             VStack(spacing: 8) {
                                 ZStack {
-                                    Circle().stroke(Color.white.opacity(0.1), lineWidth: 3).frame(width: 44, height: 44)
+                                    Circle().stroke(AppTheme.glassBorder, lineWidth: 3).frame(width: 44, height: 44)
                                     if habit.isDone {
                                         Circle().fill(AppTheme.accentGreen.opacity(0.2)).frame(width: 44, height: 44)
                                         Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundColor(AppTheme.accentGreen)

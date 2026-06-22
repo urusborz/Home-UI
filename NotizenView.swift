@@ -91,7 +91,7 @@ struct NoteDetailSheet: View {
                 HStack {
                     Button { isPresented = false } label: {
                         Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 34, height: 34).background(Color.white.opacity(0.06)).clipShape(Circle())
+                            .frame(width: 34, height: 34).background(AppTheme.controlBackground).clipShape(Circle())
                     }
                     .buttonStyle(.plain)
                     Spacer()
@@ -102,7 +102,7 @@ struct NoteDetailSheet: View {
                     .buttonStyle(.plain)
                     Button(action: onDelete) {
                         Image(systemName: "trash").font(.system(size: 15, weight: .semibold)).foregroundColor(AppTheme.accentAmber)
-                            .frame(width: 34, height: 34).background(Color.white.opacity(0.06)).clipShape(Circle())
+                            .frame(width: 34, height: 34).background(AppTheme.controlBackground).clipShape(Circle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -226,7 +226,7 @@ struct SearchBarView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(Color.white.opacity(0.06))
+        .background(AppTheme.controlBackground)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
     }

@@ -17,6 +17,9 @@ class DataStore: ObservableObject {
     // Whether daily prayer-time notifications are enabled.
     @Published var prayerNotificationsEnabled: Bool = false
 
+    @Published var appAppearance: AppAppearance = .dark
+    @Published var appAccentTheme: AppAccentTheme = .ocean
+
     // MARK: - Init
 
     init() {
@@ -309,6 +312,16 @@ class DataStore: ObservableObject {
         save()
     }
 
+    func setAppearance(_ appearance: AppAppearance) {
+        appAppearance = appearance
+        save()
+    }
+
+    func setAccentTheme(_ theme: AppAccentTheme) {
+        appAccentTheme = theme
+        save()
+    }
+
     // Called once at app start: request permission and refresh all scheduled notifications.
     func bootstrapNotifications() {
         NotificationManager.shared.requestAuthorization()
@@ -408,6 +421,8 @@ class DataStore: ObservableObject {
         encode(habits,        key: "habits")
         encode(prayerDone,    key: "prayerDone")
         UserDefaults.standard.set(prayerNotificationsEnabled, forKey: "prayerNotificationsEnabled")
+        UserDefaults.standard.set(appAppearance.rawValue, forKey: "appAppearance")
+        UserDefaults.standard.set(appAccentTheme.rawValue, forKey: "appAccentTheme")
     }
 
     private func load() {
@@ -421,6 +436,8 @@ class DataStore: ObservableObject {
         habits        = decode([Habit].self,         key: "habits")        ?? (isFirstLaunch ? SeedData.habits : [])
         prayerDone    = decode([String: Bool].self,  key: "prayerDone")    ?? [:]
         prayerNotificationsEnabled = UserDefaults.standard.bool(forKey: "prayerNotificationsEnabled")
+        appAppearance = AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appAppearance") ?? "") ?? .dark
+        appAccentTheme = AppAccentTheme(rawValue: UserDefaults.standard.string(forKey: "appAccentTheme") ?? "") ?? .ocean
 
         if isFirstLaunch {
             UserDefaults.standard.set(true, forKey: "hasLaunched")

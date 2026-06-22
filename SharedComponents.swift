@@ -79,7 +79,7 @@ struct AddButton: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: 34, height: 34)
-                .background(Color.white.opacity(0.1))
+                .background(AppTheme.accentBlue.opacity(0.85))
                 .clipShape(Circle())
                 .overlay(Circle().stroke(AppTheme.glassBorder, lineWidth: 0.5))
         }
@@ -135,7 +135,7 @@ struct DarkSheet<Content: View>: View {
             AppTheme.backgroundPrimary.ignoresSafeArea()
             VStack(spacing: 24) {
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.white.opacity(0.2))
+                    .fill(AppTheme.textTertiary.opacity(0.5))
                     .frame(width: 40, height: 4)
                     .padding(.top, 12)
 
@@ -151,7 +151,7 @@ struct DarkSheet<Content: View>: View {
                         .foregroundColor(AppTheme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.white.opacity(0.06))
+                        .background(AppTheme.controlBackground)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
 
                     Button("Speichern") { onSave() }
@@ -187,7 +187,7 @@ struct DarkTextField: View {
             .foregroundColor(AppTheme.textPrimary)
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .background(Color.white.opacity(0.06))
+            .background(AppTheme.controlBackground)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
             .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
     }
@@ -217,7 +217,7 @@ struct DarkTextEditor: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
         }
-        .background(Color.white.opacity(0.06))
+        .background(AppTheme.controlBackground)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
     }
@@ -241,7 +241,7 @@ struct DarkToggleRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.06))
+        .background(AppTheme.controlBackground)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
     }
@@ -376,7 +376,7 @@ struct ChipButton: View {
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
                 .foregroundColor(isSelected ? .white : AppTheme.textTertiary)
                 .padding(.vertical, 8).padding(.horizontal, 14)
-                .background(isSelected ? AppTheme.accentBlue.opacity(0.2) : Color.white.opacity(0.06))
+                .background(isSelected ? AppTheme.accentBlue.opacity(AppTheme.isLight ? 0.85 : 0.2) : AppTheme.controlBackground)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(isSelected ? AppTheme.accentBlue.opacity(0.4) : AppTheme.glassBorder, lineWidth: 0.5))
         }
