@@ -3,13 +3,7 @@ import UIKit
 
 struct TrackerView: View {
     let mode: AppMode
-    @State private var section: TrackerSection = .habits
-
-    enum TrackerSection: String, CaseIterable {
-        case habits = "Habits"
-        case gebete = "Gebete"
-        case cleaning = "Cleaning"
-    }
+    @Binding var section: TrackerSection
 
     var body: some View {
         if mode == .persoenlich {
@@ -37,7 +31,7 @@ struct TrackerView: View {
                         Button {
                             withAnimation(.spring(response: 0.3)) { section = sec }
                         } label: {
-                            Text(sec.rawValue)
+                            Text(sec.title)
                                 .font(.system(size: 14, weight: section == sec ? .semibold : .regular, design: .rounded))
                                 .foregroundColor(section == sec ? .white : AppTheme.textTertiary)
                                 .padding(.vertical, 8).padding(.horizontal, 18)
@@ -57,7 +51,7 @@ struct TrackerView: View {
                     switch section {
                     case .habits:   HabitsView()
                     case .gebete:   GebeteView()
-                    case .cleaning: CleanTrackerView()
+                    case .entzug: WithdrawalTrackerView()
                     }
                     Spacer(minLength: 20)
                 }
@@ -320,135 +314,185 @@ struct PrayerRow: View {
     }
 }
 
-// MARK: - Clean Tracker
+// MARK: - Withdrawal Tracker
 
-struct CleanTrackerView: View {
+struct WithdrawalTrackerView: View {
     @EnvironmentObject var store: DataStore
     @State private var showingAdd = false
-    @State private var editing: CleanTask? = nil
+    @State private var editing: WithdrawalItem? = nil
 
-    private var dueCount: Int { store.cleanTasks.filter { $0.isDue() }.count }
-    private var total: Int { store.cleanTasks.count }
-    // Progress = share of tasks currently "fresh" (not due).
-    private var freshProgress: Double { total == 0 ? 0 : Double(total - dueCount) / Double(total) }
-
-    // Due tasks first (most overdue on top), then by remaining days.
-    private var sortedTasks: [CleanTask] {
-        store.cleanTasks.sorted { $0.daysUntilDue() < $1.daysUntilDue() }
+    private var sortedItems: [WithdrawalItem] {
+        store.withdrawalItems.sorted { $0.cleanHours() > $1.cleanHours() }
     }
 
     var body: some View {
         VStack(spacing: 16) {
-            VStack(spacing: 12) {
-                HStack {
-                    SectionHeader(title: "Clean Tracker",
-                                  subtitle: dueCount == 0 ? "Alles frisch" : "\(dueCount) fällig")
-                    AddButton { showingAdd = true }
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    SectionHeader(title: "Entzug", subtitle: "\(store.withdrawalItems.count) aktiv")
+                    Text("Tracke Abstinenz, Gründe, Ziele und Rückfälle.")
+                        .font(.system(size: 12))
+                        .foregroundColor(AppTheme.textSecondary)
                 }
-                ProgressBar(progress: freshProgress)
+                AddButton { showingAdd = true }
             }
             .glassCard()
 
-            if store.cleanTasks.isEmpty {
-                EmptyStateView(icon: "sparkles", text: "Noch keine Aufgaben")
+            if sortedItems.isEmpty {
+                EmptyStateView(icon: "flame", text: "Noch kein Entzug angelegt")
             } else {
-                VStack(spacing: 8) {
-                    ForEach(sortedTasks) { task in
-                        SwipeToDeleteRow(onDelete: { store.deleteCleanTask(id: task.id) }) {
-                            CleanTaskRow(task: task)
+                VStack(spacing: 10) {
+                    ForEach(sortedItems) { item in
+                        SwipeToDeleteRow(onDelete: { store.deleteWithdrawalItem(id: item.id) }) {
+                            WithdrawalCard(item: item, onEdit: { editing = item })
                         }
-                        .itemContextMenu(onEdit: { editing = task },
-                                         onDelete: { store.deleteCleanTask(id: task.id) })
+                        .itemContextMenu(onEdit: { editing = item },
+                                         onDelete: { store.deleteWithdrawalItem(id: item.id) })
                     }
                 }
             }
         }
         .sheet(isPresented: $showingAdd) {
-            CleanTaskSheet(existing: nil, isPresented: $showingAdd).environmentObject(store)
+            WithdrawalSheet(existing: nil, isPresented: $showingAdd).environmentObject(store)
         }
-        .sheet(item: $editing) { task in
-            CleanTaskSheet(existing: task, isPresented: Binding(
+        .sheet(item: $editing) { item in
+            WithdrawalSheet(existing: item, isPresented: Binding(
                 get: { editing != nil }, set: { if !$0 { editing = nil } }
             )).environmentObject(store)
         }
     }
 }
 
-struct CleanTaskRow: View {
-    let task: CleanTask
+struct WithdrawalCard: View {
+    let item: WithdrawalItem
+    let onEdit: () -> Void
     @EnvironmentObject var store: DataStore
 
-    private var due: Bool { task.isDue() }
-
-    private var lastDoneLabel: String {
-        guard let days = task.daysSinceDone() else { return "Noch nie erledigt" }
-        if days == 0 { return "Zuletzt: heute" }
-        if days == 1 { return "Zuletzt: gestern" }
-        return "Zuletzt: vor \(days) Tagen"
-    }
-
-    private var status: (text: String, color: Color) {
-        let remaining = task.daysUntilDue()
-        if task.lastDone == nil { return ("Fällig", AppTheme.accentAmber) }
-        if remaining < 0  { return ("Überfällig · \(-remaining) T.", AppTheme.accentAmber) }
-        if remaining == 0 { return ("Heute fällig", AppTheme.accentAmber) }
-        return ("in \(remaining) T.", AppTheme.textTertiary)
-    }
-
     var body: some View {
-        HStack(spacing: 14) {
-            Button { store.markCleanTaskDone(id: task.id) } label: {
-                ZStack {
-                    Circle().stroke(due ? AppTheme.accentAmber.opacity(0.6) : AppTheme.accentGreen, lineWidth: 1.5)
-                        .frame(width: 26, height: 26)
-                    if due {
-                        Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .bold)).foregroundColor(AppTheme.accentAmber)
-                    } else {
-                        Circle().fill(AppTheme.accentGreen.opacity(0.2)).frame(width: 26, height: 26)
-                        Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(AppTheme.accentGreen)
-                    }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.title)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.textPrimary)
+                    Text("Seit \(item.startDate.deDayMonth)")
+                        .font(.system(size: 11))
+                        .foregroundColor(AppTheme.textTertiary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text("\(item.cleanDays())")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.accentAmber)
+                    Text(item.cleanDays() == 1 ? "Tag" : "Tage")
+                        .font(.system(size: 11))
+                        .foregroundColor(AppTheme.textTertiary)
                 }
             }
-            .buttonStyle(.plain)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(task.title).font(.system(size: 15, weight: .medium)).foregroundColor(AppTheme.textPrimary)
-                Text(lastDoneLabel).font(.system(size: 11)).foregroundColor(AppTheme.textTertiary)
+
+            if !item.reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                infoLine(title: "Warum", text: item.reason)
             }
-            Spacer()
-            StatusPill(text: status.text, color: status.color)
+            if !item.goal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                infoLine(title: "Ziel", text: item.goal)
+            }
+
+            HStack(spacing: 8) {
+                StatusPill(text: "\(item.relapses.count) Rückfälle", color: item.relapses.isEmpty ? AppTheme.accentGreen : AppTheme.accentAmber)
+                Spacer()
+                Button("Bearbeiten", action: onEdit)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(AppTheme.textPrimary)
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                    .background(AppTheme.controlBackground)
+                    .clipShape(Capsule())
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    store.logRelapse(id: item.id, resetStreak: false)
+                } label: {
+                    relapseButton("Rückfall notieren", icon: "exclamationmark.circle")
+                }
+                Button {
+                    store.logRelapse(id: item.id, resetStreak: true)
+                } label: {
+                    relapseButton("Neu starten", icon: "arrow.clockwise")
+                }
+            }
         }
-        .padding(.horizontal, 16).padding(.vertical, 14)
+        .padding(16)
+        .background(AppTheme.cardSolid)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusLarge))
+        .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusLarge).stroke(AppTheme.glassBorder, lineWidth: 0.5))
         .contentShape(Rectangle())
+    }
+
+    private func infoLine(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(AppTheme.textTertiary)
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func relapseButton(_ text: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+            Text(text).lineLimit(1).minimumScaleFactor(0.75)
+        }
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(AppTheme.accentAmber.opacity(0.85))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
     }
 }
 
-struct CleanTaskSheet: View {
-    let existing: CleanTask?
+struct WithdrawalSheet: View {
+    let existing: WithdrawalItem?
     @Binding var isPresented: Bool
     @EnvironmentObject var store: DataStore
     @State private var title: String
-    @State private var interval: Int
+    @State private var reason: String
+    @State private var goal: String
+    @State private var startDate: Date
 
-    init(existing: CleanTask?, isPresented: Binding<Bool>) {
+    init(existing: WithdrawalItem?, isPresented: Binding<Bool>) {
         self.existing = existing
         self._isPresented = isPresented
         _title = State(initialValue: existing?.title ?? "")
-        _interval = State(initialValue: existing?.intervalDays ?? 7)
+        _reason = State(initialValue: existing?.reason ?? "")
+        _goal = State(initialValue: existing?.goal ?? "")
+        _startDate = State(initialValue: existing?.startDate ?? Date())
     }
 
     var body: some View {
-        DarkSheet(title: existing == nil ? "Neue Aufgabe" : "Aufgabe bearbeiten",
-                  isPresented: $isPresented, detents: [.medium, .large]) {
-            VStack(spacing: 14) {
-                DarkTextField(placeholder: "z.B. Badezimmer putzen", text: $title)
-                IntervalPicker(days: $interval)
+        DarkSheet(title: existing == nil ? "Neuer Entzug" : "Entzug bearbeiten",
+                  isPresented: $isPresented, detents: [.large]) {
+            VStack(spacing: 12) {
+                DarkTextField(placeholder: "Womit willst du aufhören?", text: $title)
+                DarkTextEditor(placeholder: "Warum hörst du auf?", text: $reason)
+                DarkTextEditor(placeholder: "Was ist dein Ziel?", text: $goal)
+                DatePicker("Startdatum", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
+                    .datePickerStyle(.compact)
+                    .colorScheme(AppTheme.appearance.preferredColorScheme)
+                    .tint(AppTheme.accentBlue)
+                    .padding(.horizontal, 4)
             }
         } onSave: {
-            guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-            var t = existing ?? CleanTask(title: "")
-            t.title = title
-            t.intervalDays = interval
-            if existing == nil { store.addCleanTask(t) } else { store.updateCleanTask(t) }
+            guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+            var item = existing ?? WithdrawalItem(title: title)
+            item.title = title
+            item.reason = reason
+            item.goal = goal
+            item.startDate = startDate
+            if existing == nil { store.addWithdrawalItem(item) } else { store.updateWithdrawalItem(item) }
             isPresented = false
         }
     }

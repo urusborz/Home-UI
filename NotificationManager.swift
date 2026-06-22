@@ -32,7 +32,7 @@ final class NotificationManager {
         guard let due = reminder.dueDate, !reminder.isCompleted, due > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Erinnerung"
+        content.title = "Aufgabe"
         content.body = reminder.title
         content.sound = .default
 

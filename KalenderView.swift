@@ -101,10 +101,10 @@ struct KalenderView: View {
                         }
                     }
 
-                    // Reminders due on the selected day (cross-linked from Erinnerungen)
+                    // Tasks due on the selected day.
                     if !remindersForSelected.isEmpty {
                         Divider().background(AppTheme.separator).padding(.vertical, 2)
-                        SectionLabel("Fällige Erinnerungen")
+                        SectionLabel("Fällige Aufgaben")
                         ForEach(remindersForSelected) { reminder in
                             CalendarReminderRow(reminder: reminder, accentColor: accentColor)
                                 .environmentObject(store)
@@ -343,7 +343,7 @@ struct EventRow: View {
     }
 }
 
-// MARK: - Calendar Reminder Row (cross-linked from Erinnerungen)
+// MARK: - Calendar Task Row
 
 struct CalendarReminderRow: View {
     let reminder: Reminder

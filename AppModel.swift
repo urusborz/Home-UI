@@ -18,7 +18,7 @@ enum TabItem: Int, CaseIterable {
         switch self {
         case .startseite:   return "Startseite"
         case .kalender:     return "Kalender"
-        case .erinnerungen: return "Erinnerungen"
+        case .erinnerungen: return "Aufgaben"
         case .notizen:      return "Notizen"
         case .tracker:      return mode == .persoenlich ? "Tracker" : "Liste"
         }
@@ -31,6 +31,22 @@ enum TabItem: Int, CaseIterable {
         case .erinnerungen: return "bell.fill"
         case .notizen:      return "note.text"
         case .tracker:      return mode == .persoenlich ? "chart.bar.fill" : "list.bullet"
+        }
+    }
+}
+
+enum TrackerSection: String, CaseIterable, Identifiable {
+    case habits
+    case gebete
+    case entzug
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .habits: return "Habits"
+        case .gebete: return "Gebete"
+        case .entzug: return "Entzug"
         }
     }
 }
@@ -180,44 +196,37 @@ struct ShoppingItem: Identifiable, Codable {
     var isChecked: Bool = false
 }
 
-// MARK: - Clean Task (interval-based maintenance)
+// MARK: - Withdrawal Tracker
 
-struct CleanTask: Identifiable, Codable {
+struct RelapseEntry: Identifiable, Codable {
+    var id = UUID()
+    var date: Date = Date()
+    var resetStreak: Bool = false
+}
+
+struct WithdrawalItem: Identifiable, Codable {
     var id = UUID()
     var title: String
-    var intervalDays: Int = 7
-    var lastDone: Date?
+    var reason: String
+    var goal: String
+    var startDate: Date
+    var relapses: [RelapseEntry] = []
 
-    enum CodingKeys: String, CodingKey { case id, title, intervalDays, lastDone }
-
-    init(id: UUID = UUID(), title: String, intervalDays: Int = 7, lastDone: Date? = nil) {
-        self.id = id; self.title = title; self.intervalDays = intervalDays; self.lastDone = lastDone
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = (try? c.decode(UUID.self, forKey: .id)) ?? UUID()
-        title = (try? c.decode(String.self, forKey: .title)) ?? ""
-        intervalDays = (try? c.decode(Int.self, forKey: .intervalDays)) ?? 7
-        lastDone = try? c.decode(Date.self, forKey: .lastDone)
+    init(id: UUID = UUID(), title: String, reason: String = "", goal: String = "", startDate: Date = Date(), relapses: [RelapseEntry] = []) {
+        self.id = id
+        self.title = title
+        self.reason = reason
+        self.goal = goal
+        self.startDate = startDate
+        self.relapses = relapses
     }
 
-    func daysSinceDone(_ now: Date = Date(), cal: Calendar = .current) -> Int? {
-        guard let last = lastDone else { return nil }
-        return cal.dateComponents([.day], from: cal.startOfDay(for: last), to: cal.startOfDay(for: now)).day
+    func cleanDays(_ now: Date = Date(), calendar: Calendar = .current) -> Int {
+        max(0, calendar.dateComponents([.day], from: calendar.startOfDay(for: startDate), to: calendar.startOfDay(for: now)).day ?? 0)
     }
-    func isDue(_ now: Date = Date()) -> Bool {
-        guard let d = daysSinceDone(now) else { return true }
-        return d >= intervalDays
-    }
-    // negative = overdue by N days, 0 = due today, positive = days remaining
-    func daysUntilDue(_ now: Date = Date()) -> Int {
-        guard let d = daysSinceDone(now) else { return 0 }
-        return intervalDays - d
-    }
-    func cycleProgress(_ now: Date = Date()) -> Double {
-        guard let d = daysSinceDone(now) else { return 0 }
-        return max(0, min(1, 1 - Double(d) / Double(max(1, intervalDays))))
+
+    func cleanHours(_ now: Date = Date()) -> Int {
+        max(0, Int(now.timeIntervalSince(startDate) / 3600))
     }
 }
 
@@ -240,7 +249,7 @@ struct BackupPayload: Codable {
     var reminders: [Reminder]
     var notes: [Note]
     var shoppingItems: [ShoppingItem]
-    var cleanTasks: [CleanTask]
+    var withdrawalItems: [WithdrawalItem]
     var habits: [Habit]
     var prayerDone: [String: Bool]
 }
@@ -283,11 +292,13 @@ struct SeedData {
         ShoppingItem(name: "Tomaten", quantity: "500g")
     ]
 
-    static let cleanTasks: [CleanTask] = [
-        CleanTask(title: "Badezimmer putzen", intervalDays: 7,  lastDone: at(0, 0, plusDays: -9)),
-        CleanTask(title: "Staubsaugen",       intervalDays: 3,  lastDone: at(0, 0, plusDays: -1)),
-        CleanTask(title: "Küche wischen",     intervalDays: 2,  lastDone: at(0, 0, plusDays: -1)),
-        CleanTask(title: "Fenster putzen",    intervalDays: 30, lastDone: at(0, 0, plusDays: -14))
+    static let withdrawalItems: [WithdrawalItem] = [
+        WithdrawalItem(
+            title: "Koffein",
+            reason: "Ruhiger schlafen und weniger abhängig vom Energielevel am Morgen sein.",
+            goal: "Mehr stabile Energie im Alltag.",
+            startDate: at(0, 0, plusDays: -3)
+        )
     ]
 
     static let habits: [Habit] = [

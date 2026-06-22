@@ -49,6 +49,17 @@ struct BackupSheet: View {
                         SectionHeader(title: "Darstellung")
 
                         VStack(alignment: .leading, spacing: 8) {
+                            SectionLabel("Name")
+                            DarkTextField(
+                                placeholder: "Name für die Startseite",
+                                text: Binding(
+                                    get: { store.displayName },
+                                    set: { store.setDisplayName($0) }
+                                )
+                            )
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
                             SectionLabel("Modus")
                             HStack(spacing: 10) {
                                 ForEach(AppAppearance.allCases) { appearance in
@@ -83,7 +94,7 @@ struct BackupSheet: View {
                     // Export
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHeader(title: "Exportieren")
-                        Text("Sichere alle Daten (Termine, Erinnerungen, Notizen, Einkauf, Tracker) als Datei. Ohne Backup gehen Daten beim Löschen der App verloren.")
+                        Text("Sichere alle Daten (Termine, Aufgaben, Notizen, Einkauf, Tracker) als Datei. Ohne Backup gehen Daten beim Löschen der App verloren.")
                             .font(.system(size: 13))
                             .foregroundColor(AppTheme.textSecondary)
 

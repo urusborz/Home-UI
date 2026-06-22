@@ -71,7 +71,7 @@ struct StartseiteFamilieView: View {
                                      centerBottom: "Einkauf")
                 VStack(spacing: 12) {
                     MiniStat(label: "Termine demnächst", value: "\(upcomingCount)", color: AppTheme.accentPurple)
-                    MiniStat(label: "Offene Erinnerungen", value: "\(openReminders)", color: AppTheme.accentBlue)
+                    MiniStat(label: "Offene Aufgaben", value: "\(openReminders)", color: AppTheme.accentBlue)
                     MiniStat(label: "Einkauf offen", value: "\(openShopping)", color: AppTheme.accentAmber)
                     MiniStat(label: "Notizen", value: "\(notesCount)", color: AppTheme.accentGreen)
                 }
@@ -113,7 +113,7 @@ struct StartseiteFamilieView: View {
     private var sharedReminders: some View {
         let open = store.sortedReminders(store.familyReminders.filter { !$0.isCompleted })
         return VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Erinnerungen")
+            SectionHeader(title: "Aufgaben")
             if open.isEmpty {
                 Text("Alles erledigt").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary).padding(.vertical, 4)
             } else {

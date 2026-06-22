@@ -18,7 +18,7 @@ struct ErinnerungenView: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(mode == .persoenlich ? "Erinnerungen" : "Gemeinsame Erinnerungen")
+                        Text(mode == .persoenlich ? "Aufgaben" : "Gemeinsame Aufgaben")
                             .font(.system(size: 26, weight: .bold, design: .rounded))
                             .foregroundColor(AppTheme.textPrimary)
                         Text("\(open.count) offen · \(done.count) erledigt")
@@ -56,7 +56,7 @@ struct ErinnerungenView: View {
                 }
 
                 if list.isEmpty {
-                    EmptyStateView(icon: "bell", text: "Noch keine Erinnerungen")
+                    EmptyStateView(icon: "bell", text: "Noch keine Aufgaben")
                 }
 
                 Spacer(minLength: 20)
@@ -179,10 +179,10 @@ struct ReminderSheet: View {
     }
 
     var body: some View {
-        DarkSheet(title: existing == nil ? "Neue Erinnerung" : "Erinnerung bearbeiten",
+        DarkSheet(title: existing == nil ? "Neue Aufgabe" : "Aufgabe bearbeiten",
                   isPresented: $isPresented, detents: [.medium, .large]) {
             VStack(spacing: 14) {
-                DarkTextField(placeholder: "Erinnerung eingeben...", text: $title)
+                DarkTextField(placeholder: "Aufgabe eingeben...", text: $title)
                 DarkToggleRow(title: "Fälligkeitsdatum", isOn: $hasDueDate.animation())
                 if hasDueDate {
                     DatePicker("Fällig am", selection: $dueDate)

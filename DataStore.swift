@@ -8,7 +8,7 @@ class DataStore: ObservableObject {
     @Published var reminders: [Reminder] = []
     @Published var notes: [Note] = []
     @Published var shoppingItems: [ShoppingItem] = []
-    @Published var cleanTasks: [CleanTask] = []
+    @Published var withdrawalItems: [WithdrawalItem] = []
     @Published var habits: [Habit] = []
 
     // Prayer done-state, keyed "yyyy-MM-dd|Fajr". Times themselves come from PrayerData.
@@ -19,6 +19,7 @@ class DataStore: ObservableObject {
 
     @Published var appAppearance: AppAppearance = .dark
     @Published var appAccentTheme: AppAccentTheme = .ocean
+    @Published var displayName: String = ""
 
     // MARK: - Init
 
@@ -196,33 +197,32 @@ class DataStore: ObservableObject {
         save()
     }
 
-    // MARK: - Clean Tasks
+    // MARK: - Withdrawal
 
-    func addCleanTask(_ task: CleanTask) {
-        cleanTasks.append(task)
+    func addWithdrawalItem(_ item: WithdrawalItem) {
+        withdrawalItems.append(item)
         save()
     }
 
-    func updateCleanTask(_ task: CleanTask) {
-        if let i = cleanTasks.firstIndex(where: { $0.id == task.id }) {
-            cleanTasks[i] = task
+    func updateWithdrawalItem(_ item: WithdrawalItem) {
+        if let i = withdrawalItems.firstIndex(where: { $0.id == item.id }) {
+            withdrawalItems[i] = item
             save()
         }
     }
 
-    // Mark a maintenance task as done now → resets its interval cycle.
-    func markCleanTaskDone(id: UUID) {
-        if let i = cleanTasks.firstIndex(where: { $0.id == id }) {
-            cleanTasks[i].lastDone = Date()
-            Haptics.success()
-            save()
-        }
+    func deleteWithdrawalItem(id: UUID) {
+        withdrawalItems.removeAll { $0.id == id }
+        save()
     }
 
-    var cleanTasksDue: [CleanTask] { cleanTasks.filter { $0.isDue() } }
-
-    func deleteCleanTask(id: UUID) {
-        cleanTasks.removeAll { $0.id == id }
+    func logRelapse(id: UUID, resetStreak: Bool) {
+        guard let i = withdrawalItems.firstIndex(where: { $0.id == id }) else { return }
+        withdrawalItems[i].relapses.insert(RelapseEntry(date: Date(), resetStreak: resetStreak), at: 0)
+        if resetStreak {
+            withdrawalItems[i].startDate = Date()
+        }
+        Haptics.warning()
         save()
     }
 
@@ -322,6 +322,11 @@ class DataStore: ObservableObject {
         save()
     }
 
+    func setDisplayName(_ name: String) {
+        displayName = name
+        save()
+    }
+
     // Called once at app start: request permission and refresh all scheduled notifications.
     func bootstrapNotifications() {
         NotificationManager.shared.requestAuthorization()
@@ -345,7 +350,7 @@ class DataStore: ObservableObject {
 
     func exportJSON() -> String {
         let payload = BackupPayload(events: events, reminders: reminders, notes: notes,
-                                    shoppingItems: shoppingItems, cleanTasks: cleanTasks,
+                                    shoppingItems: shoppingItems, withdrawalItems: withdrawalItems,
                                     habits: habits, prayerDone: prayerDone)
         guard let data = try? backupEncoder().encode(payload),
               let str = String(data: data, encoding: .utf8) else { return "" }
@@ -371,7 +376,7 @@ class DataStore: ObservableObject {
         reminders = payload.reminders
         notes = payload.notes
         shoppingItems = payload.shoppingItems
-        cleanTasks = payload.cleanTasks
+        withdrawalItems = payload.withdrawalItems
         habits = payload.habits
         prayerDone = payload.prayerDone
         save()
@@ -417,12 +422,13 @@ class DataStore: ObservableObject {
         encode(reminders,     key: "reminders")
         encode(notes,         key: "notes")
         encode(shoppingItems, key: "shoppingItems")
-        encode(cleanTasks,    key: "cleanTasks")
+        encode(withdrawalItems, key: "withdrawalItems")
         encode(habits,        key: "habits")
         encode(prayerDone,    key: "prayerDone")
         UserDefaults.standard.set(prayerNotificationsEnabled, forKey: "prayerNotificationsEnabled")
         UserDefaults.standard.set(appAppearance.rawValue, forKey: "appAppearance")
         UserDefaults.standard.set(appAccentTheme.rawValue, forKey: "appAccentTheme")
+        UserDefaults.standard.set(displayName, forKey: "displayName")
     }
 
     private func load() {
@@ -432,12 +438,13 @@ class DataStore: ObservableObject {
         reminders     = decode([Reminder].self,      key: "reminders")     ?? (isFirstLaunch ? SeedData.reminders : [])
         notes         = decode([Note].self,          key: "notes")         ?? (isFirstLaunch ? SeedData.notes : [])
         shoppingItems = decode([ShoppingItem].self,  key: "shoppingItems") ?? (isFirstLaunch ? SeedData.shoppingItems : [])
-        cleanTasks    = decode([CleanTask].self,     key: "cleanTasks")    ?? (isFirstLaunch ? SeedData.cleanTasks : [])
+        withdrawalItems = decode([WithdrawalItem].self, key: "withdrawalItems") ?? (isFirstLaunch ? SeedData.withdrawalItems : [])
         habits        = decode([Habit].self,         key: "habits")        ?? (isFirstLaunch ? SeedData.habits : [])
         prayerDone    = decode([String: Bool].self,  key: "prayerDone")    ?? [:]
         prayerNotificationsEnabled = UserDefaults.standard.bool(forKey: "prayerNotificationsEnabled")
         appAppearance = AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appAppearance") ?? "") ?? .dark
         appAccentTheme = AppAccentTheme(rawValue: UserDefaults.standard.string(forKey: "appAccentTheme") ?? "") ?? .ocean
+        displayName = UserDefaults.standard.string(forKey: "displayName") ?? ""
 
         if isFirstLaunch {
             UserDefaults.standard.set(true, forKey: "hasLaunched")

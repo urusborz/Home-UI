@@ -3,6 +3,7 @@ import SwiftUI
 struct StartseitePersoenlichView: View {
     @Binding var mode: AppMode
     @Binding var selectedTab: TabItem
+    @Binding var selectedTrackerSection: TrackerSection
     @EnvironmentObject var store: DataStore
 
     private var greeting: String {
@@ -29,7 +30,7 @@ struct StartseitePersoenlichView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(dateString).font(.system(size: 13, weight: .medium)).foregroundColor(AppTheme.textSecondary)
-                        Text(greeting).font(.system(size: 28, weight: .bold, design: .rounded)).foregroundColor(AppTheme.textPrimary)
+                        Text(greetingTitle).font(.system(size: 28, weight: .bold, design: .rounded)).foregroundColor(AppTheme.textPrimary)
                     }
                     Spacer()
                     HStack(spacing: 6) {
@@ -75,9 +76,8 @@ struct StartseitePersoenlichView: View {
         let prayersDone = slots.filter { $0.isTrackable && $0.isDone }.count
         let habitsDone = store.habits.filter(\.isDone).count
         let habitsTotal = store.habits.count
-        let cleanTotal = store.cleanTasks.count
-        let cleanDue = store.cleanTasks.filter { $0.isDue() }.count
-        let cleanFresh = cleanTotal - cleanDue
+        let withdrawalTotal = store.withdrawalItems.count
+        let longestStreak = store.withdrawalItems.map { $0.cleanDays() }.max() ?? 0
         let openReminders = store.personalReminders.filter { !$0.isCompleted }.count
 
         let totalUnits = 5 + habitsTotal
@@ -93,8 +93,8 @@ struct StartseitePersoenlichView: View {
                 VStack(spacing: 12) {
                     MiniStat(label: "Gebete", value: "\(prayersDone)/5", color: AppTheme.accentAmber)
                     MiniStat(label: "Habits", value: "\(habitsDone)/\(habitsTotal)", color: AppTheme.accentGreen)
-                    MiniStat(label: "Putzen frisch", value: "\(cleanFresh)/\(cleanTotal)", color: AppTheme.accentBlue)
-                    MiniStat(label: "Offene Erinnerungen", value: "\(openReminders)", color: AppTheme.accentPurple)
+                    MiniStat(label: "Entzug", value: withdrawalTotal == 0 ? "0 aktiv" : "\(longestStreak) Tage", color: AppTheme.accentBlue)
+                    MiniStat(label: "Offene Aufgaben", value: "\(openReminders)", color: AppTheme.accentPurple)
                 }
             }
         }
@@ -113,7 +113,7 @@ struct StartseitePersoenlichView: View {
                 Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(AppTheme.textTertiary)
             }
             .contentShape(Rectangle())
-            .onTapGesture { withAnimation { selectedTab = .tracker } }
+            .onTapGesture { openTracker(.gebete) }
 
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
@@ -186,7 +186,7 @@ struct StartseitePersoenlichView: View {
     private var remindersPreview: some View {
         let open = store.sortedReminders(store.personalReminders.filter { !$0.isCompleted })
         return VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Erinnerungen")
+            SectionHeader(title: "Aufgaben")
             if open.isEmpty {
                 Text("Alles erledigt").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary).padding(.vertical, 8)
             } else {
@@ -218,7 +218,7 @@ struct StartseitePersoenlichView: View {
                 Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(AppTheme.textTertiary)
             }
             .contentShape(Rectangle())
-            .onTapGesture { withAnimation { selectedTab = .tracker } }
+            .onTapGesture { openTracker(.habits) }
             if store.habits.isEmpty {
                 Text("Noch keine Habits").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary)
             } else {
@@ -280,28 +280,26 @@ struct StartseitePersoenlichView: View {
         .onTapGesture { withAnimation { selectedTab = .notizen } }
     }
 
-    // MARK: - Clean Tracker Preview (tap to toggle)
+    // MARK: - Withdrawal Preview
 
     private var cleanTrackerPreview: some View {
-        let due = store.cleanTasks.filter { $0.isDue() }.sorted { $0.daysUntilDue() < $1.daysUntilDue() }
+        let items = store.withdrawalItems.sorted { $0.cleanHours() > $1.cleanHours() }
         return VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Clean Tracker", subtitle: due.isEmpty ? "Alles frisch" : "\(due.count) fällig")
-            if store.cleanTasks.isEmpty {
-                Text("Noch keine Aufgaben").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary)
-            } else if due.isEmpty {
-                Text("Aktuell ist nichts fällig 🎉").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary).padding(.vertical, 4)
+            SectionHeader(title: "Entzug", subtitle: items.isEmpty ? "Noch nichts aktiv" : "\(items.count) aktiv")
+            if items.isEmpty {
+                Text("Lege fest, womit du aufhören willst und warum es dir wichtig ist.")
+                    .font(.system(size: 13))
+                    .foregroundColor(AppTheme.textTertiary)
             } else {
                 VStack(spacing: 10) {
-                    ForEach(due.prefix(3)) { task in
+                    ForEach(items.prefix(3)) { item in
                         HStack(spacing: 12) {
-                            Button { store.markCleanTaskDone(id: task.id) } label: {
-                                Image(systemName: "arrow.clockwise.circle")
-                                    .font(.system(size: 16)).foregroundColor(AppTheme.accentAmber)
-                            }
-                            .buttonStyle(.plain)
-                            Text(task.title).font(.system(size: 14, weight: .medium)).foregroundColor(AppTheme.textPrimary).lineLimit(1)
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppTheme.accentAmber)
+                            Text(item.title).font(.system(size: 14, weight: .medium)).foregroundColor(AppTheme.textPrimary).lineLimit(1)
                             Spacer()
-                            Text(cleanStatus(task)).font(.system(size: 11)).foregroundColor(AppTheme.accentAmber)
+                            Text("\(item.cleanDays()) Tage").font(.system(size: 11, weight: .semibold)).foregroundColor(AppTheme.accentAmber)
                         }
                     }
                 }
@@ -309,14 +307,19 @@ struct StartseitePersoenlichView: View {
         }
         .glassCard()
         .contentShape(Rectangle())
-        .onTapGesture { withAnimation { selectedTab = .tracker } }
+        .onTapGesture { openTracker(.entzug) }
     }
 
-    private func cleanStatus(_ task: CleanTask) -> String {
-        let r = task.daysUntilDue()
-        if task.lastDone == nil { return "fällig" }
-        if r < 0 { return "\(-r) T. überf." }
-        return "heute"
+    private var greetingTitle: String {
+        let name = store.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? greeting : "\(greeting), \(name)"
+    }
+
+    private func openTracker(_ section: TrackerSection) {
+        withAnimation {
+            selectedTrackerSection = section
+            selectedTab = .tracker
+        }
     }
 
     private func eventLabel(_ event: CalendarEvent, _ date: Date) -> String {

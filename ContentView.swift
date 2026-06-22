@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject var store: DataStore
     @State private var selectedMode: AppMode = .persoenlich
     @State private var selectedTab: TabItem = .startseite
+    @State private var selectedTrackerSection: TrackerSection = .habits
     @State private var showingBackup = false
 
     var body: some View {
@@ -39,7 +40,7 @@ struct ContentView: View {
                         switch selectedTab {
                         case .startseite:
                             if selectedMode == .persoenlich {
-                                StartseitePersoenlichView(mode: $selectedMode, selectedTab: $selectedTab)
+                                StartseitePersoenlichView(mode: $selectedMode, selectedTab: $selectedTab, selectedTrackerSection: $selectedTrackerSection)
                             } else {
                                 StartseiteFamilieView(mode: $selectedMode, selectedTab: $selectedTab)
                             }
@@ -50,7 +51,7 @@ struct ContentView: View {
                         case .notizen:
                             NotizenView(mode: selectedMode)
                         case .tracker:
-                            TrackerView(mode: selectedMode)
+                            TrackerView(mode: selectedMode, section: $selectedTrackerSection)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -58,7 +59,7 @@ struct ContentView: View {
                     // Floating bottom navigation
                     BottomNavBarView(selectedTab: $selectedTab, mode: selectedMode)
                         .padding(.horizontal, screenPadding)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 2)
                 }
             }
         }
