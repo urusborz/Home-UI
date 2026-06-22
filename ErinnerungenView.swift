@@ -61,7 +61,7 @@ struct ErinnerungenView: View {
 
                 Spacer(minLength: 20)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
             .padding(.bottom, 20)
         }
         .sheet(isPresented: $showingAdd) {

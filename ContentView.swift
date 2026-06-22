@@ -7,55 +7,59 @@ struct ContentView: View {
     @State private var showingBackup = false
 
     var body: some View {
-        ZStack {
-            // OLED Background
-            AppTheme.backgroundPrimary
-                .ignoresSafeArea()
+        GeometryReader { proxy in
+            let screenPadding = AppTheme.screenPadding(for: proxy.size.width)
 
-            VStack(spacing: 0) {
-                // Mode Switcher at top + backup access
-                HStack(spacing: 12) {
-                    ModeSwitcherView(selectedMode: $selectedMode)
-                    Button { showingBackup = true } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 46, height: 40)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppTheme.glassBorder, lineWidth: 0.5))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.top, 56)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 8)
+            ZStack {
+                // OLED Background
+                AppTheme.backgroundPrimary
+                    .ignoresSafeArea()
 
-                // Main content area
-                ZStack {
-                    switch selectedTab {
-                    case .startseite:
-                        if selectedMode == .persoenlich {
-                            StartseitePersoenlichView(mode: $selectedMode, selectedTab: $selectedTab)
-                        } else {
-                            StartseiteFamilieView(mode: $selectedMode, selectedTab: $selectedTab)
+                VStack(spacing: 0) {
+                    // Mode Switcher at top + backup access
+                    HStack(spacing: 10) {
+                        ModeSwitcherView(selectedMode: $selectedMode)
+                        Button { showingBackup = true } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .frame(width: 46, height: 40)
+                                .background(Color.white.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppTheme.glassBorder, lineWidth: 0.5))
                         }
-                    case .kalender:
-                        KalenderView(mode: selectedMode)
-                    case .erinnerungen:
-                        ErinnerungenView(mode: selectedMode)
-                    case .notizen:
-                        NotizenView(mode: selectedMode)
-                    case .tracker:
-                        TrackerView(mode: selectedMode)
+                        .buttonStyle(.plain)
                     }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 10)
+                    .padding(.horizontal, screenPadding)
+                    .padding(.bottom, 8)
 
-                // Floating bottom navigation
-                BottomNavBarView(selectedTab: $selectedTab, mode: selectedMode)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 28)
+                    // Main content area
+                    ZStack {
+                        switch selectedTab {
+                        case .startseite:
+                            if selectedMode == .persoenlich {
+                                StartseitePersoenlichView(mode: $selectedMode, selectedTab: $selectedTab)
+                            } else {
+                                StartseiteFamilieView(mode: $selectedMode, selectedTab: $selectedTab)
+                            }
+                        case .kalender:
+                            KalenderView(mode: selectedMode)
+                        case .erinnerungen:
+                            ErinnerungenView(mode: selectedMode)
+                        case .notizen:
+                            NotizenView(mode: selectedMode)
+                        case .tracker:
+                            TrackerView(mode: selectedMode)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    // Floating bottom navigation
+                    BottomNavBarView(selectedTab: $selectedTab, mode: selectedMode)
+                        .padding(.horizontal, screenPadding)
+                        .padding(.bottom, 10)
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -163,6 +167,8 @@ struct TabBarButtonView: View {
                     .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
                 Text(tab.label(for: mode))
                     .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             }
             .foregroundColor(isSelected ? .white : Color.white.opacity(0.38))
             .frame(maxWidth: .infinity)

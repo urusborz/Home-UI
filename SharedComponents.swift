@@ -165,7 +165,7 @@ struct DarkSheet<Content: View>: View {
 
                 Spacer()
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
         }
         .presentationDetents(detents)
         .presentationDragIndicator(.hidden)
@@ -205,7 +205,7 @@ struct DarkTextEditor: View {
                 Text(placeholder)
                     .foregroundColor(AppTheme.textTertiary)
                     .font(.system(size: 16))
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, AppTheme.phoneScreenPadding)
                     .padding(.vertical, 18)
             }
             TextEditor(text: $text)

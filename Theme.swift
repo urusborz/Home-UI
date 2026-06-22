@@ -33,6 +33,13 @@ struct AppTheme {
     static let radiusMedium: CGFloat = 16
     static let radiusLarge: CGFloat = 22
     static let radiusXL: CGFloat = 28
+
+    static let phoneScreenPadding: CGFloat = 14
+    static let compactPhoneScreenPadding: CGFloat = 12
+
+    static func screenPadding(for width: CGFloat) -> CGFloat {
+        width <= 390 ? compactPhoneScreenPadding : phoneScreenPadding
+    }
 }
 
 // MARK: - Glass Card Modifier

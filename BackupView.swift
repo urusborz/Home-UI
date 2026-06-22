@@ -95,7 +95,7 @@ struct BackupSheet: View {
 
                     Spacer(minLength: 20)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, AppTheme.phoneScreenPadding)
                 .padding(.bottom, 20)
             }
         }

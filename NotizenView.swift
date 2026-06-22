@@ -52,7 +52,7 @@ struct NotizenView: View {
 
                 Spacer(minLength: 20)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
             .padding(.bottom, 20)
         }
         .sheet(isPresented: $showingAdd) {
@@ -126,7 +126,7 @@ struct NoteDetailSheet: View {
                     .padding(.top, 18)
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.hidden)

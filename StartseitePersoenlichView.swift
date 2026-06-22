@@ -63,7 +63,7 @@ struct StartseitePersoenlichView: View {
 
                 Spacer(minLength: 20)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
             .padding(.bottom, 20)
         }
     }

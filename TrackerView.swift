@@ -27,7 +27,7 @@ struct TrackerView: View {
                     .foregroundColor(AppTheme.textPrimary)
                 Spacer()
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
             .padding(.top, 8)
             .padding(.bottom, 16)
 
@@ -48,7 +48,7 @@ struct TrackerView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppTheme.phoneScreenPadding)
             }
             .padding(.bottom, 16)
 
@@ -61,7 +61,7 @@ struct TrackerView: View {
                     }
                     Spacer(minLength: 20)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppTheme.phoneScreenPadding)
                 .padding(.bottom, 20)
             }
         }
@@ -489,7 +489,7 @@ struct ShoppingListView: View {
                 }
                 AddButton { showingAdd = true }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
             .padding(.top, 8)
             .padding(.bottom, 16)
 
@@ -524,7 +524,7 @@ struct ShoppingListView: View {
                     }
                     Spacer(minLength: 20)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppTheme.phoneScreenPadding)
                 .padding(.bottom, 20)
             }
         }
