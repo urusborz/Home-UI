@@ -9,18 +9,18 @@ jobs:
   build-ipa:
     runs-on: macos-15
     steps:
-      - name: Code holen
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Xcode auswählen
+      - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: Verfügbare Schemes anzeigen
+      - name: Show available schemes
         run: xcodebuild -list || true
 
-      - name: App bauen (ohne Signierung)
+      - name: Build app binary without signing
         run: |
           set -o pipefail
           xcodebuild \
@@ -33,18 +33,89 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             clean build
 
-      - name: .ipa verpacken
+      - name: Package unsigned IPA for Sideloadly
         run: |
-          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -n 1)
-          echo "Gefundene App: $APP"
-          if [ -z "$APP" ]; then echo "Keine .app gefunden"; exit 1; fi
-          mkdir -p Payload
-          cp -R "$APP" "Payload/"
-          zip -r -y "MeineApp.ipa" Payload
-          ls -la
+          set -euo pipefail
 
-      - name: .ipa hochladen (Artifact)
+          PRODUCT_DIR="build/Build/Products/Release-iphoneos"
+          EXECUTABLE_SRC="$PRODUCT_DIR/Meine App"
+          APP_DIR="Payload/HomeUI.app"
+
+          echo "Product directory contents:"
+          find "$PRODUCT_DIR" -maxdepth 2 -print
+
+          if [ ! -f "$EXECUTABLE_SRC" ]; then
+            echo "Expected executable not found: $EXECUTABLE_SRC"
+            exit 1
+          fi
+
+          rm -rf Payload HomeUI.ipa
+          mkdir -p "$APP_DIR"
+          cp "$EXECUTABLE_SRC" "$APP_DIR/Meine App"
+          chmod +x "$APP_DIR/Meine App"
+
+          cat > "$APP_DIR/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleDevelopmentRegion</key>
+              <string>en</string>
+              <key>CFBundleDisplayName</key>
+              <string>Home UI</string>
+              <key>CFBundleExecutable</key>
+              <string>Meine App</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.urusborz.homeui</string>
+              <key>CFBundleInfoDictionaryVersion</key>
+              <string>6.0</string>
+              <key>CFBundleName</key>
+              <string>HomeUI</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleSupportedPlatforms</key>
+              <array>
+                  <string>iPhoneOS</string>
+              </array>
+              <key>CFBundleVersion</key>
+              <string>1</string>
+              <key>LSRequiresIPhoneOS</key>
+              <true/>
+              <key>MinimumOSVersion</key>
+              <string>18.0</string>
+              <key>UIDeviceFamily</key>
+              <array>
+                  <integer>1</integer>
+                  <integer>2</integer>
+              </array>
+              <key>UIRequiredDeviceCapabilities</key>
+              <array>
+                  <string>arm64</string>
+              </array>
+              <key>UISupportedInterfaceOrientations</key>
+              <array>
+                  <string>UIInterfaceOrientationPortrait</string>
+                  <string>UIInterfaceOrientationLandscapeLeft</string>
+                  <string>UIInterfaceOrientationLandscapeRight</string>
+              </array>
+              <key>UISupportedInterfaceOrientations~ipad</key>
+              <array>
+                  <string>UIInterfaceOrientationPortrait</string>
+                  <string>UIInterfaceOrientationPortraitUpsideDown</string>
+                  <string>UIInterfaceOrientationLandscapeLeft</string>
+                  <string>UIInterfaceOrientationLandscapeRight</string>
+              </array>
+          </dict>
+          </plist>
+          PLIST
+
+          plutil -lint "$APP_DIR/Info.plist"
+          /usr/bin/zip -r -y HomeUI.ipa Payload
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MeineApp-ipa
-          path: MeineApp.ipa
+          name: HomeUI-unsigned-ipa
+          path: HomeUI.ipa
