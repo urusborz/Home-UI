@@ -55,66 +55,25 @@ jobs:
           chmod +x "$APP_DIR/HomeUI"
           printf 'APPL????' > "$APP_DIR/PkgInfo"
 
-          python3 <<'PY'
-          import math
-          import os
-          import struct
-          import zlib
+          ICON_SOURCE=".github/assets/AppIconSource.jpg"
+          if [ ! -f "$ICON_SOURCE" ]; then
+            echo "Expected icon source not found: $ICON_SOURCE"
+            exit 1
+          fi
 
-          app_dir = "Payload/HomeUI.app"
-
-          def chunk(tag, data):
-              return (
-                  struct.pack(">I", len(data))
-                  + tag
-                  + data
-                  + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-              )
-
-          def write_png(path, size):
-              rows = []
-              for y in range(size):
-                  row = bytearray([0])
-                  for x in range(size):
-                      nx = x / max(1, size - 1)
-                      ny = y / max(1, size - 1)
-                      vignette = 1 - min(0.55, math.hypot(nx - 0.5, ny - 0.5) * 0.75)
-                      r = int((20 + 42 * nx) * vignette)
-                      g = int((118 + 70 * (1 - ny)) * vignette)
-                      b = int((210 + 28 * ny) * vignette)
-
-                      cx = nx - 0.5
-                      cy = ny - 0.52
-                      roof = abs(cx) < 0.22 and -0.22 < cy < -0.02 and cy > (abs(cx) * 0.78 - 0.22)
-                      body = abs(cx) < 0.17 and -0.02 <= cy < 0.20
-                      door = abs(cx) < 0.045 and 0.065 < cy < 0.20
-                      if roof or body:
-                          r, g, b = 246, 248, 255
-                      if door:
-                          r, g, b = 34, 120, 230
-                      row.extend((r, g, b))
-                  rows.append(bytes(row))
-
-              raw = b"".join(rows)
-              png = (
-                  b"\x89PNG\r\n\x1a\n"
-                  + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0))
-                  + chunk(b"IDAT", zlib.compress(raw, 9))
-                  + chunk(b"IEND", b"")
-              )
-              with open(path, "wb") as f:
-                  f.write(png)
-
-          icons = {
-              "AppIcon60x60@2x.png": 120,
-              "AppIcon60x60@3x.png": 180,
-              "AppIcon76x76@2x.png": 152,
-              "AppIcon83.5x83.5@2x.png": 167,
-              "AppIcon1024.png": 1024,
+          generate_icon() {
+            local name="$1"
+            local size="$2"
+            local tmp="$RUNNER_TEMP/${name%.png}.png"
+            sips -s format png "$ICON_SOURCE" --out "$tmp" >/dev/null
+            sips -z "$size" "$size" "$tmp" --out "$APP_DIR/$name" >/dev/null
           }
-          for name, size in icons.items():
-              write_png(os.path.join(app_dir, name), size)
-          PY
+
+          generate_icon "AppIcon60x60@2x.png" 120
+          generate_icon "AppIcon60x60@3x.png" 180
+          generate_icon "AppIcon76x76@2x.png" 152
+          generate_icon "AppIcon83.5x83.5@2x.png" 167
+          generate_icon "AppIcon1024.png" 1024
 
           cat > "$APP_DIR/Info.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
