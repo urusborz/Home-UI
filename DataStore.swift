@@ -18,7 +18,7 @@ class DataStore: ObservableObject {
     @Published var prayerNotificationsEnabled: Bool = false
 
     @Published var appAppearance: AppAppearance = .dark
-    @Published var appAccentTheme: AppAccentTheme = .ocean
+    @Published var appAccentTheme: AppAccentTheme = .klar
     @Published var displayName: String = ""
 
     // MARK: - Init
@@ -313,11 +313,13 @@ class DataStore: ObservableObject {
     }
 
     func setAppearance(_ appearance: AppAppearance) {
+        UserDefaults.standard.set(appearance.rawValue, forKey: "appAppearance")
         appAppearance = appearance
         save()
     }
 
     func setAccentTheme(_ theme: AppAccentTheme) {
+        UserDefaults.standard.set(theme.rawValue, forKey: "appAccentTheme")
         appAccentTheme = theme
         save()
     }
@@ -443,7 +445,7 @@ class DataStore: ObservableObject {
         prayerDone    = decode([String: Bool].self,  key: "prayerDone")    ?? [:]
         prayerNotificationsEnabled = UserDefaults.standard.bool(forKey: "prayerNotificationsEnabled")
         appAppearance = AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appAppearance") ?? "") ?? .dark
-        appAccentTheme = AppAccentTheme(rawValue: UserDefaults.standard.string(forKey: "appAccentTheme") ?? "") ?? .ocean
+        appAccentTheme = AppAccentTheme.storedValue(UserDefaults.standard.string(forKey: "appAccentTheme"))
         displayName = UserDefaults.standard.string(forKey: "displayName") ?? ""
 
         if isFirstLaunch {

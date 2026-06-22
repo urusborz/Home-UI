@@ -85,7 +85,7 @@ struct NoteDetailSheet: View {
 
     var body: some View {
         ZStack {
-            AppTheme.backgroundPrimary.ignoresSafeArea()
+            AppTheme.backgroundGradient.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 0) {
                 // Top bar
                 HStack {
@@ -96,8 +96,8 @@ struct NoteDetailSheet: View {
                     .buttonStyle(.plain)
                     Spacer()
                     Button(action: onEdit) {
-                        Image(systemName: "pencil").font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                            .frame(width: 34, height: 34).background(AppTheme.accentBlue.opacity(0.8)).clipShape(Circle())
+                        Image(systemName: "pencil").font(.system(size: 15, weight: .semibold)).foregroundColor(AppTheme.onAccent)
+                            .frame(width: 34, height: 34).background(AppTheme.accentGradient).clipShape(Circle())
                     }
                     .buttonStyle(.plain)
                     Button(action: onDelete) {

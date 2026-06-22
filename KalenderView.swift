@@ -354,10 +354,10 @@ struct CalendarReminderRow: View {
         HStack(spacing: 12) {
             Button { store.toggleReminder(id: reminder.id) } label: {
                 ZStack {
-                    Circle().stroke(reminder.isCompleted ? AppTheme.accentGreen : Color.white.opacity(0.25), lineWidth: 1.5).frame(width: 20, height: 20)
+                    Circle().stroke(reminder.isCompleted ? AppTheme.accentGreen : AppTheme.ringTrack, lineWidth: 1.5).frame(width: 20, height: 20)
                     if reminder.isCompleted {
                         Circle().fill(AppTheme.accentGreen).frame(width: 20, height: 20)
-                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundColor(.white)
+                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundColor(AppTheme.onAccent)
                     }
                 }
             }
@@ -419,7 +419,7 @@ struct EventSheet: View {
                            selection: $date,
                            displayedComponents: hasTime ? [.date, .hourAndMinute] : [.date])
                     .datePickerStyle(.compact)
-                    .colorScheme(.dark)
+                    .colorScheme(AppTheme.appearance.preferredColorScheme)
                     .tint(AppTheme.accentBlue)
                     .padding(.horizontal, 4)
                 RecurrencePicker(selection: $recurrence)
@@ -448,9 +448,9 @@ struct ViewToggleButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? .white : AppTheme.textTertiary)
+                .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.textTertiary)
                 .padding(.vertical, 8).padding(.horizontal, 22)
-                .background(Group { if isSelected { Capsule().fill(AppTheme.selectedControlBackground).padding(3) } })
+                .background(Group { if isSelected { Capsule().fill(AppTheme.accentGradient).padding(3) } })
         }
         .buttonStyle(.plain)
     }

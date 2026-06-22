@@ -33,9 +33,15 @@ struct TrackerView: View {
                         } label: {
                             Text(sec.title)
                                 .font(.system(size: 14, weight: section == sec ? .semibold : .regular, design: .rounded))
-                                .foregroundColor(section == sec ? .white : AppTheme.textTertiary)
+                                .foregroundColor(section == sec ? AppTheme.onAccent : AppTheme.textTertiary)
                                 .padding(.vertical, 8).padding(.horizontal, 18)
-                                .background(section == sec ? AppTheme.accentBlue.opacity(AppTheme.isLight ? 0.85 : 0.2) : AppTheme.controlBackground)
+                                .background {
+                                    if section == sec {
+                                        AppTheme.accentGradient
+                                    } else {
+                                        AppTheme.controlBackground
+                                    }
+                                }
                                 .clipShape(Capsule())
                                 .overlay(Capsule().stroke(section == sec ? AppTheme.accentBlue.opacity(0.4) : AppTheme.glassBorder, lineWidth: 0.5))
                         }
@@ -116,7 +122,7 @@ struct HabitRow: View {
         HStack(spacing: 14) {
             Button { store.toggleHabit(id: habit.id) } label: {
                 ZStack {
-                    Circle().stroke(habit.isDone ? AppTheme.accentGreen : Color.white.opacity(0.2), lineWidth: 1.5).frame(width: 28, height: 28)
+                    Circle().stroke(habit.isDone ? AppTheme.accentGreen : AppTheme.ringTrack, lineWidth: 1.5).frame(width: 28, height: 28)
                     if habit.isDone {
                         Circle().fill(AppTheme.accentGreen.opacity(0.2)).frame(width: 28, height: 28)
                         Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundColor(AppTheme.accentGreen)
@@ -185,7 +191,7 @@ struct GebeteView: View {
                         .foregroundColor(AppTheme.accentAmber.opacity(0.8))
                     Text(next.name)
                         .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.textPrimary)
                     Text(next.date.deTime + " Uhr")
                         .font(.system(size: 20, weight: .light, design: .rounded))
                         .foregroundColor(AppTheme.accentAmber)
@@ -273,7 +279,7 @@ struct PrayerRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(slot.name)
                     .font(.system(size: 16, weight: slot.isNext ? .semibold : .medium))
-                    .foregroundColor(slot.isNext ? .white : (slot.isDone ? AppTheme.textTertiary : AppTheme.textPrimary))
+                        .foregroundColor(slot.isNext ? AppTheme.textPrimary : (slot.isDone ? AppTheme.textTertiary : AppTheme.textPrimary))
                 Text(slot.germanName)
                     .font(.system(size: 11))
                     .foregroundColor(AppTheme.textTertiary)
@@ -287,7 +293,7 @@ struct PrayerRow: View {
                 Button { store.togglePrayer(name: slot.name) } label: {
                     Image(systemName: slot.isDone ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 20))
-                        .foregroundColor(slot.isDone ? AppTheme.accentGreen : Color.white.opacity(0.2))
+                        .foregroundColor(slot.isDone ? AppTheme.accentGreen : AppTheme.ringTrack)
                 }
                 .buttonStyle(.plain)
             } else {
@@ -446,10 +452,16 @@ struct WithdrawalCard: View {
             Text(text).lineLimit(1).minimumScaleFactor(0.75)
         }
         .font(.system(size: 12, weight: .semibold))
-        .foregroundColor(.white)
+        .foregroundColor(AppTheme.onAccent)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(AppTheme.accentAmber.opacity(0.85))
+        .background(
+            LinearGradient(
+                colors: [AppTheme.accentAmber, AppTheme.accentPurple],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
     }
 }
@@ -591,7 +603,7 @@ struct ShoppingRow: View {
         HStack(spacing: 14) {
             Button { store.toggleShoppingItem(id: item.id) } label: {
                 ZStack {
-                    Circle().stroke(item.isChecked ? AppTheme.accentGreen : Color.white.opacity(0.2), lineWidth: 1.5).frame(width: 24, height: 24)
+                    Circle().stroke(item.isChecked ? AppTheme.accentGreen : AppTheme.ringTrack, lineWidth: 1.5).frame(width: 24, height: 24)
                     if item.isChecked {
                         Circle().fill(AppTheme.accentGreen.opacity(0.15)).frame(width: 24, height: 24)
                         Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(AppTheme.accentGreen)
@@ -651,7 +663,7 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 4).fill(AppTheme.controlBackground).frame(height: 6)
+                RoundedRectangle(cornerRadius: 4).fill(AppTheme.ringTrack).frame(height: 6)
                 RoundedRectangle(cornerRadius: 4).fill(AppTheme.accentGreen)
                     .frame(width: max(0, min(1, progress)) * geo.size.width, height: 6)
             }

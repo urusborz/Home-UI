@@ -13,7 +13,7 @@ struct BackupSheet: View {
 
     var body: some View {
         ZStack {
-            AppTheme.backgroundPrimary.ignoresSafeArea()
+            AppTheme.backgroundGradient.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
 
@@ -178,9 +178,15 @@ struct BackupSheet: View {
             Text(text).font(.system(size: 15, weight: .semibold))
             Spacer()
         }
-        .foregroundColor(filled ? .white : AppTheme.textPrimary)
+        .foregroundColor(filled ? AppTheme.onAccent : AppTheme.textPrimary)
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .background(filled ? AppTheme.accentBlue.opacity(0.8) : AppTheme.controlBackground)
+        .background {
+            if filled {
+                AppTheme.accentGradient
+            } else {
+                AppTheme.controlBackground
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
     }
@@ -197,11 +203,17 @@ struct BackupSheet: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundColor(isSelected ? .white : AppTheme.textPrimary)
+            .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.textPrimary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .padding(.horizontal, 10)
-            .background(isSelected ? AppTheme.accentBlue.opacity(0.85) : AppTheme.controlBackground)
+            .background {
+                if isSelected {
+                    AppTheme.accentGradient
+                } else {
+                    AppTheme.controlBackground
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
             .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(isSelected ? AppTheme.accentBlue.opacity(0.35) : AppTheme.glassBorder, lineWidth: 0.5))
         }

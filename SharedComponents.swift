@@ -43,7 +43,7 @@ struct SwipeToDeleteRow<Content: View>: View {
                 } label: {
                     Image(systemName: "trash.fill")
                         .font(.system(size: 17))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.onAccent)
                         .frame(width: reveal)
                         .frame(maxHeight: .infinity)
                         .background(Color.red.opacity(0.9))
@@ -77,9 +77,9 @@ struct AddButton: View {
         Button(action: action) {
             Image(systemName: "plus")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.onAccent)
                 .frame(width: 34, height: 34)
-                .background(AppTheme.accentBlue.opacity(0.85))
+                .background(AppTheme.accentGradient)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(AppTheme.glassBorder, lineWidth: 0.5))
         }
@@ -132,7 +132,7 @@ struct DarkSheet<Content: View>: View {
 
     var body: some View {
         ZStack {
-            AppTheme.backgroundPrimary.ignoresSafeArea()
+            AppTheme.backgroundGradient.ignoresSafeArea()
             VStack(spacing: 24) {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(AppTheme.textTertiary.opacity(0.5))
@@ -156,10 +156,10 @@ struct DarkSheet<Content: View>: View {
 
                     Button("Speichern") { onSave() }
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(AppTheme.accentBlue.opacity(0.8))
+                        .background(AppTheme.accentGradient)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
                 }
 
@@ -275,7 +275,7 @@ struct CircularProgressRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.08), lineWidth: lineWidth)
+                .stroke(AppTheme.ringTrack, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: max(0.001, min(1, progress)))
                 .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
@@ -283,7 +283,7 @@ struct CircularProgressRing: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: progress)
             VStack(spacing: 1) {
                 if let centerTop {
-                    Text(centerTop).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(.white)
+                    Text(centerTop).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundColor(AppTheme.textPrimary)
                 }
                 if let centerBottom {
                     Text(centerBottom).font(.system(size: 10)).foregroundColor(AppTheme.textTertiary)
@@ -374,9 +374,15 @@ struct ChipButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? .white : AppTheme.textTertiary)
+                .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.textTertiary)
                 .padding(.vertical, 8).padding(.horizontal, 14)
-                .background(isSelected ? AppTheme.accentBlue.opacity(AppTheme.isLight ? 0.85 : 0.2) : AppTheme.controlBackground)
+                .background {
+                    if isSelected {
+                        AppTheme.accentGradient
+                    } else {
+                        AppTheme.controlBackground
+                    }
+                }
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(isSelected ? AppTheme.accentBlue.opacity(0.4) : AppTheme.glassBorder, lineWidth: 0.5))
         }
@@ -408,7 +414,7 @@ struct NotificationDeniedBanner: View {
             } label: {
                 Text("Öffnen")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.onAccent)
                     .padding(.horizontal, 12).padding(.vertical, 7)
                     .background(AppTheme.accentAmber.opacity(0.85))
                     .clipShape(Capsule())

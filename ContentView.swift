@@ -12,8 +12,7 @@ struct ContentView: View {
             let screenPadding = AppTheme.screenPadding(for: proxy.size.width)
 
             ZStack {
-                // OLED Background
-                AppTheme.backgroundPrimary
+                AppTheme.backgroundGradient
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
@@ -64,6 +63,7 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(store.appAppearance.preferredColorScheme)
+        .id("\(store.appAppearance.rawValue)-\(store.appAccentTheme.rawValue)")
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedMode)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedTab)
         .onAppear { store.bootstrapNotifications() }
@@ -107,14 +107,14 @@ struct ModeSwitcherButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 15, weight: isSelected ? .semibold : .regular, design: .rounded))
-                .foregroundColor(isSelected ? AppTheme.textPrimary : AppTheme.textTertiary)
+                .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.textTertiary)
                 .padding(.vertical, 11)
                 .frame(maxWidth: .infinity)
                 .background(
                     Group {
                         if isSelected {
                             Capsule()
-                                .fill(AppTheme.selectedControlBackground)
+                                .fill(AppTheme.accentGradient)
                                 .padding(4)
                         }
                     }
@@ -147,11 +147,10 @@ struct BottomNavBarView: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 8)
-        .background(.ultraThinMaterial)
-        .background(AppTheme.controlBackground)
+        .background(AppTheme.glassBackground)
         .clipShape(Capsule())
         .overlay(Capsule().stroke(AppTheme.glassBorder, lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
+        .shadow(color: AppTheme.shadow, radius: 20, x: 0, y: 10)
     }
 }
 
@@ -171,14 +170,14 @@ struct TabBarButtonView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
-            .foregroundColor(isSelected ? .white : AppTheme.textTertiary)
+            .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.textTertiary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(
                 Group {
                     if isSelected {
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(AppTheme.accentBlue.opacity(AppTheme.isLight ? 0.86 : 0.16))
+                            .fill(AppTheme.accentGradient)
                     }
                 }
             )

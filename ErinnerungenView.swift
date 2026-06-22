@@ -106,11 +106,11 @@ struct ReminderRow: View {
             Button { store.toggleReminder(id: reminder.id) } label: {
                 ZStack {
                     Circle()
-                        .stroke(reminder.isCompleted ? AppTheme.accentGreen : Color.white.opacity(0.2), lineWidth: 1.5)
+                        .stroke(reminder.isCompleted ? AppTheme.accentGreen : AppTheme.ringTrack, lineWidth: 1.5)
                         .frame(width: 22, height: 22)
                     if reminder.isCompleted {
                         Circle().fill(AppTheme.accentGreen).frame(width: 22, height: 22)
-                        Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                        Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(AppTheme.onAccent)
                     }
                 }
             }
@@ -187,7 +187,7 @@ struct ReminderSheet: View {
                 if hasDueDate {
                     DatePicker("Fällig am", selection: $dueDate)
                         .datePickerStyle(.compact)
-                        .colorScheme(.dark)
+                        .colorScheme(AppTheme.appearance.preferredColorScheme)
                         .tint(AppTheme.accentBlue)
                         .padding(.horizontal, 4)
                     RecurrencePicker(selection: $recurrence)
