@@ -8,6 +8,24 @@ struct ContentView: View {
     @State private var showingBackup = false
 
     var body: some View {
+        Group {
+            if store.isAuthenticated {
+                mainApp
+            } else {
+                AuthView()
+            }
+        }
+        .preferredColorScheme(store.appAppearance.preferredColorScheme)
+        .id("\(store.appAppearance.rawValue)-\(store.appAccentTheme.rawValue)-\(store.isAuthenticated)")
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedMode)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedTab)
+        .onAppear { store.bootstrapNotifications() }
+        .sheet(isPresented: $showingBackup) {
+            BackupSheet(isPresented: $showingBackup).environmentObject(store)
+        }
+    }
+
+    private var mainApp: some View {
         GeometryReader { proxy in
             let screenPadding = AppTheme.screenPadding(for: proxy.size.width)
 
@@ -16,7 +34,6 @@ struct ContentView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Mode Switcher at top + backup access
                     HStack(spacing: 10) {
                         ModeSwitcherView(selectedMode: $selectedMode)
                         Button { showingBackup = true } label: {
@@ -32,9 +49,6 @@ struct ContentView: View {
                     .padding(.horizontal, screenPadding)
                     .padding(.bottom, 8)
 
-                    // Main content area — the nav floats OVER this via safeAreaInset,
-                    // so content scrolls underneath it instead of being clipped in a
-                    // hard line right above the menu (which read as a "bar").
                     ZStack {
                         switch selectedTab {
                         case .startseite:
@@ -62,18 +76,8 @@ struct ContentView: View {
                 }
             }
         }
-        .preferredColorScheme(store.appAppearance.preferredColorScheme)
-        .id("\(store.appAppearance.rawValue)-\(store.appAccentTheme.rawValue)")
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedMode)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedTab)
-        .onAppear { store.bootstrapNotifications() }
-        .sheet(isPresented: $showingBackup) {
-            BackupSheet(isPresented: $showingBackup).environmentObject(store)
-        }
     }
 }
-
-// MARK: - Mode Switcher
 
 struct ModeSwitcherView: View {
     @Binding var selectedMode: AppMode
@@ -122,8 +126,6 @@ struct ModeSwitcherButton: View {
         .buttonStyle(.plain)
     }
 }
-
-// MARK: - Bottom Navigation
 
 struct BottomNavBarView: View {
     @Binding var selectedTab: TabItem

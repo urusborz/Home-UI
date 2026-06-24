@@ -76,108 +76,41 @@ struct BackupSheet: View {
                     }
                     .glassCard()
 
-                    // Supabase Sync
-                    VStack(alignment: .leading, spacing: 16) {
-                        SectionHeader(title: "Supabase Sync")
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            SectionLabel("Projekt-URL")
-                            DarkTextField(
-                                placeholder: "https://xxxxx.supabase.co",
-                                text: Binding(
-                                    get: { store.supabaseProjectURL },
-                                    set: { store.setSupabaseProjectURL($0) }
-                                )
-                            )
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                    VStack(alignment: .leading, spacing: 14) {
+                        SectionHeader(title: "Account")
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.crop.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(AppTheme.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.authSession?.email ?? "Angemeldet")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                                Text(store.lastSupabaseSyncAt.map { "Sync: \($0.deWeekdayDayMonth), \($0.deTime)" } ?? "Sync aktiv")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(AppTheme.textTertiary)
+                            }
+                            Spacer()
                         }
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            SectionLabel("Anon Key")
-                            SecureField("", text: Binding(
-                                get: { store.supabaseAnonKey },
-                                set: { store.setSupabaseAnonKey($0) }
-                            ))
-                            .placeholder(when: store.supabaseAnonKey.isEmpty) {
-                                Text("eyJhbGciOi...").foregroundColor(AppTheme.textTertiary)
+                        Button {
+                            store.signOut()
+                            isPresented = false
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                Text("Abmelden")
+                                    .font(.system(size: 14, weight: .semibold))
                             }
-                            .font(.system(size: 14, design: .monospaced))
                             .foregroundColor(AppTheme.textPrimary)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
                             .background(AppTheme.controlBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
-                            .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium, style: .continuous))
                         }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            SectionLabel("Sync-ID")
-                            DarkTextField(
-                                placeholder: "lesaria-main",
-                                text: Binding(
-                                    get: { store.supabaseSyncID },
-                                    set: { store.setSupabaseSyncID($0) }
-                                )
-                            )
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            SectionLabel("Sync Token")
-                            SecureField("", text: Binding(
-                                get: { store.supabaseSyncToken },
-                                set: { store.setSupabaseSyncToken($0) }
-                            ))
-                            .placeholder(when: store.supabaseSyncToken.isEmpty) {
-                                Text("persoenlicher Sync-Schluessel").foregroundColor(AppTheme.textTertiary)
-                            }
-                            .font(.system(size: 14, design: .monospaced))
-                            .foregroundColor(AppTheme.textPrimary)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(AppTheme.controlBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium))
-                            .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium).stroke(AppTheme.glassBorder, lineWidth: 0.5))
-                        }
-
-                        HStack(spacing: 10) {
-                            syncButton(title: "Sync", icon: "arrow.triangle.2.circlepath") {
-                                store.syncWithSupabase()
-                            }
-                            syncButton(title: "Upload", icon: "arrow.up.circle.fill") {
-                                store.pushToSupabase()
-                            }
-                            syncButton(title: "Download", icon: "arrow.down.circle.fill") {
-                                store.pullFromSupabase()
-                            }
-                        }
-                        .disabled(store.isSyncing)
-                        .opacity(store.isSyncing ? 0.65 : 1)
-
-                        if store.isSyncing {
-                            ProgressView()
-                                .tint(AppTheme.accent)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        if !store.syncStatusMessage.isEmpty {
-                            Text(store.syncStatusMessage)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(AppTheme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        if let lastSync = store.lastSupabaseSyncAt {
-                            Text("Zuletzt synchronisiert: \(lastSync.deWeekdayDayMonth), \(lastSync.deTime)")
-                                .font(.system(size: 11))
-                                .foregroundColor(AppTheme.textTertiary)
-                        }
+                        .buttonStyle(.plain)
                     }
                     .glassCard()
 
@@ -224,24 +157,6 @@ struct BackupSheet: View {
         .buttonStyle(.plain)
     }
 
-    private func syncButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-            .foregroundColor(AppTheme.onAccent)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(AppTheme.accent)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 // MARK: - Theme Preview Tile (live palette mock per pack)

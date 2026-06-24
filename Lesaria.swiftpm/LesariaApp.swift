@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct HomeApp: App {
+struct LesariaApp: App {
     @StateObject private var store = DataStore()
 
     var body: some Scene {

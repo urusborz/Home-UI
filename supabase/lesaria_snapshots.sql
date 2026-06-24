@@ -1,8 +1,9 @@
-create table if not exists public.lesaria_snapshots (
-    id text primary key,
+drop table if exists public.lesaria_snapshots;
+
+create table public.lesaria_snapshots (
+    user_id uuid primary key references auth.users(id) on delete cascade,
     payload jsonb not null,
     device_id text,
-    sync_token text not null,
     updated_at timestamptz not null default now()
 );
 
@@ -16,8 +17,6 @@ begin
 end;
 $$;
 
-drop trigger if exists set_lesaria_snapshots_updated_at on public.lesaria_snapshots;
-
 create trigger set_lesaria_snapshots_updated_at
 before update on public.lesaria_snapshots
 for each row
@@ -25,47 +24,23 @@ execute function public.set_lesaria_snapshots_updated_at();
 
 alter table public.lesaria_snapshots enable row level security;
 
-grant select, insert, update on public.lesaria_snapshots to anon;
+grant select, insert, update on public.lesaria_snapshots to authenticated;
 
-drop policy if exists "Lesaria snapshots select with sync token" on public.lesaria_snapshots;
-drop policy if exists "Lesaria snapshots insert with sync token" on public.lesaria_snapshots;
-drop policy if exists "Lesaria snapshots update with sync token" on public.lesaria_snapshots;
-
-create policy "Lesaria snapshots select with sync token"
+create policy "Lesaria snapshots are readable by owner"
 on public.lesaria_snapshots
 for select
-to anon
-using (
-    sync_token = coalesce(
-        nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-lesaria-sync-token', ''),
-        '__missing__'
-    )
-);
+to authenticated
+using (auth.uid() = user_id);
 
-create policy "Lesaria snapshots insert with sync token"
+create policy "Lesaria snapshots are insertable by owner"
 on public.lesaria_snapshots
 for insert
-to anon
-with check (
-    sync_token = coalesce(
-        nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-lesaria-sync-token', ''),
-        '__missing__'
-    )
-);
+to authenticated
+with check (auth.uid() = user_id);
 
-create policy "Lesaria snapshots update with sync token"
+create policy "Lesaria snapshots are updateable by owner"
 on public.lesaria_snapshots
 for update
-to anon
-using (
-    sync_token = coalesce(
-        nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-lesaria-sync-token', ''),
-        '__missing__'
-    )
-)
-with check (
-    sync_token = coalesce(
-        nullif(nullif(current_setting('request.headers', true), '')::json ->> 'x-lesaria-sync-token', ''),
-        '__missing__'
-    )
-);
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);

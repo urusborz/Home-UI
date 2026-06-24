@@ -3,25 +3,25 @@ import Foundation
 struct SupabaseSyncConfiguration {
     var projectURL: String
     var anonKey: String
-    var syncID: String
-    var syncToken: String
+    var accessToken: String
+    var userID: String
 
     var isConfigured: Bool {
         !projectURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !anonKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !syncID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !syncToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !accessToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !userID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 
 struct SupabaseSnapshot: Codable {
-    var id: String
+    var userID: String
     var payload: BackupPayload
     var updatedAt: Date?
     var deviceID: String?
 
     enum CodingKeys: String, CodingKey {
-        case id
+        case userID = "user_id"
         case payload
         case updatedAt = "updated_at"
         case deviceID = "device_id"
@@ -29,16 +29,14 @@ struct SupabaseSnapshot: Codable {
 }
 
 private struct SupabaseSnapshotWrite: Encodable {
-    var id: String
+    var userID: String
     var payload: BackupPayload
     var deviceID: String
-    var syncToken: String
 
     enum CodingKeys: String, CodingKey {
-        case id
+        case userID = "user_id"
         case payload
         case deviceID = "device_id"
-        case syncToken = "sync_token"
     }
 }
 
@@ -75,8 +73,8 @@ final class SupabaseSyncService {
         try ensureConfigured()
         var components = try restComponents(path: "lesaria_snapshots")
         components.queryItems = [
-            URLQueryItem(name: "id", value: "eq.\(configuration.syncID)"),
-            URLQueryItem(name: "select", value: "id,payload,updated_at,device_id"),
+            URLQueryItem(name: "user_id", value: "eq.\(configuration.userID)"),
+            URLQueryItem(name: "select", value: "user_id,payload,updated_at,device_id"),
             URLQueryItem(name: "limit", value: "1")
         ]
         guard let url = components.url else { throw SupabaseSyncError.invalidProjectURL }
@@ -95,7 +93,7 @@ final class SupabaseSyncService {
         try ensureConfigured()
         var components = try restComponents(path: "lesaria_snapshots")
         components.queryItems = [
-            URLQueryItem(name: "on_conflict", value: "id")
+            URLQueryItem(name: "on_conflict", value: "user_id")
         ]
         guard let url = components.url else { throw SupabaseSyncError.invalidProjectURL }
 
@@ -105,10 +103,9 @@ final class SupabaseSyncService {
         request.setValue("resolution=merge-duplicates,return=representation", forHTTPHeaderField: "Prefer")
         request.httpBody = try encoder().encode(
             SupabaseSnapshotWrite(
-                id: configuration.syncID,
+                userID: configuration.userID,
                 payload: payload,
-                deviceID: Self.deviceID,
-                syncToken: configuration.syncToken
+                deviceID: Self.deviceID
             )
         )
 
@@ -138,8 +135,7 @@ final class SupabaseSyncService {
     private func addHeaders(to request: inout URLRequest) {
         let anonKey = configuration.anonKey.trimmingCharacters(in: .whitespacesAndNewlines)
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
-        request.setValue(configuration.syncToken.trimmingCharacters(in: .whitespacesAndNewlines), forHTTPHeaderField: "x-lesaria-sync-token")
+        request.setValue("Bearer \(configuration.accessToken.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
     }
