@@ -106,18 +106,156 @@ struct SectionLabel: View {
 struct EmptyStateView: View {
     let icon: String
     let text: String
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 13) {
             Image(systemName: icon)
-                .font(.system(size: 32))
-                .foregroundColor(AppTheme.textTertiary)
+                .font(.system(size: 30))
+                .foregroundColor(AppTheme.accent.opacity(0.72))
             Text(text)
-                .font(.system(size: 14))
-                .foregroundColor(AppTheme.textTertiary)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+            if let actionTitle, let action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.onAccent)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(AppTheme.accent)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(ScaleButtonStyle())
+                .padding(.top, 2)
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.vertical, 34)
+        .padding(.horizontal, 16)
+        .background(AppTheme.controlBackground.opacity(AppTheme.isLight ? 0.70 : 0.55))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusLarge, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusLarge, style: .continuous).stroke(AppTheme.glassBorder, lineWidth: 0.6))
+    }
+}
+
+// MARK: - Scope Picker
+
+struct ScopePicker: View {
+    @Binding var isFamily: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ScopeButton(title: "Persönlich", icon: "person.fill", isSelected: !isFamily) {
+                isFamily = false
+            }
+            ScopeButton(title: "Familie", icon: "person.2.fill", isSelected: isFamily) {
+                isFamily = true
+            }
+        }
+    }
+}
+
+struct ScopeButton: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+            .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.textPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(isSelected ? AppTheme.accent : AppTheme.controlBackground)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMedium, style: .continuous).stroke(isSelected ? AppTheme.accent.opacity(0.4) : AppTheme.glassBorder, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Quick Actions
+
+struct QuickActionMenuSheet: View {
+    let mode: AppMode
+    let onSelect: (QuickActionTarget) -> Void
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Text("Neu erstellen")
+                        .font(.system(size: 23, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.textPrimary)
+                    Spacer()
+                    Button { isPresented = false } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 34, height: 34)
+                            .background(AppTheme.controlBackground)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 18)
+
+                VStack(spacing: 10) {
+                    ForEach(QuickActionTarget.options(for: mode)) { target in
+                        Button {
+                            isPresented = false
+                            onSelect(target)
+                        } label: {
+                            HStack(spacing: 13) {
+                                ZStack {
+                                    Circle()
+                                        .fill(target.color.opacity(0.18))
+                                        .frame(width: 38, height: 38)
+                                    Image(systemName: target.icon)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(target.color)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(target.title)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                    Text(target.subtitle)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(AppTheme.textTertiary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(AppTheme.textTertiary)
+                            }
+                            .padding(13)
+                            .background(AppTheme.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusLarge, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusLarge, style: .continuous).stroke(AppTheme.glassBorder, lineWidth: 0.6))
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
     }
 }
 

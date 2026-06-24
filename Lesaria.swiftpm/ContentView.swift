@@ -6,6 +6,8 @@ struct ContentView: View {
     @State private var selectedTab: TabItem = .startseite
     @State private var selectedTrackerSection: TrackerSection = .habits
     @State private var showingBackup = false
+    @State private var showingQuickActions = false
+    @State private var quickActionTarget: QuickActionTarget? = nil
 
     var body: some View {
         Group {
@@ -23,6 +25,12 @@ struct ContentView: View {
         .sheet(isPresented: $showingBackup) {
             BackupSheet(isPresented: $showingBackup).environmentObject(store)
         }
+        .sheet(isPresented: $showingQuickActions) {
+            QuickActionMenuSheet(mode: selectedMode, onSelect: openQuickAction, isPresented: $showingQuickActions)
+        }
+        .sheet(item: $quickActionTarget) { target in
+            quickActionSheet(for: target)
+        }
     }
 
     private var mainApp: some View {
@@ -36,6 +44,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     HStack(spacing: 10) {
                         ModeSwitcherView(selectedMode: $selectedMode)
+                        AddButton { showingQuickActions = true }
                         Button { showingBackup = true } label: {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 16, weight: .semibold))
@@ -53,9 +62,18 @@ struct ContentView: View {
                         switch selectedTab {
                         case .startseite:
                             if selectedMode == .persoenlich {
-                                StartseitePersoenlichView(mode: $selectedMode, selectedTab: $selectedTab, selectedTrackerSection: $selectedTrackerSection)
+                                StartseitePersoenlichView(
+                                    mode: $selectedMode,
+                                    selectedTab: $selectedTab,
+                                    selectedTrackerSection: $selectedTrackerSection,
+                                    onQuickAction: openQuickAction
+                                )
                             } else {
-                                StartseiteFamilieView(mode: $selectedMode, selectedTab: $selectedTab)
+                                StartseiteFamilieView(
+                                    mode: $selectedMode,
+                                    selectedTab: $selectedTab,
+                                    onQuickAction: openQuickAction
+                                )
                             }
                         case .kalender:
                             KalenderView(mode: selectedMode)
@@ -75,6 +93,68 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func openQuickAction(_ target: QuickActionTarget) {
+        navigateForQuickAction(target)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+            quickActionTarget = target
+        }
+    }
+
+    private func navigateForQuickAction(_ target: QuickActionTarget) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+            switch target {
+            case .event:
+                selectedTab = .kalender
+            case .reminder:
+                selectedTab = .erinnerungen
+            case .note:
+                selectedTab = .notizen
+            case .habit:
+                selectedMode = .persoenlich
+                selectedTrackerSection = .habits
+                selectedTab = .tracker
+            case .withdrawal:
+                selectedMode = .persoenlich
+                selectedTrackerSection = .entzug
+                selectedTab = .tracker
+            case .shopping:
+                selectedMode = .familie
+                selectedTab = .tracker
+            }
+        }
+    }
+
+    private var quickActionPresented: Binding<Bool> {
+        Binding(
+            get: { quickActionTarget != nil },
+            set: { if !$0 { quickActionTarget = nil } }
+        )
+    }
+
+    @ViewBuilder
+    private func quickActionSheet(for target: QuickActionTarget) -> some View {
+        switch target {
+        case .event:
+            EventSheet(mode: selectedMode, existing: nil, defaultDate: Date(), isPresented: quickActionPresented)
+                .environmentObject(store)
+        case .reminder:
+            ReminderSheet(mode: selectedMode, existing: nil, isPresented: quickActionPresented)
+                .environmentObject(store)
+        case .note:
+            NoteSheet(mode: selectedMode, existing: nil, isPresented: quickActionPresented)
+                .environmentObject(store)
+        case .habit:
+            HabitSheet(existing: nil, isPresented: quickActionPresented)
+                .environmentObject(store)
+        case .withdrawal:
+            WithdrawalSheet(existing: nil, isPresented: quickActionPresented)
+                .environmentObject(store)
+        case .shopping:
+            ShoppingSheet(existing: nil, isPresented: quickActionPresented)
+                .environmentObject(store)
         }
     }
 }

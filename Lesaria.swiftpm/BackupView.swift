@@ -60,17 +60,19 @@ struct BackupSheet: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             SectionLabel("Theme")
-                            HStack(spacing: 12) {
-                                ForEach(AppAccentTheme.allCases) { theme in
-                                    ThemePreviewTile(
-                                        theme: theme,
-                                        isLight: store.appAppearance == .light,
-                                        isSelected: store.appAccentTheme == theme
-                                    ) {
-                                        store.setAccentTheme(theme)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(AppAccentTheme.allCases) { theme in
+                                        ThemePreviewTile(
+                                            theme: theme,
+                                            isLight: store.appAppearance == .light,
+                                            isSelected: store.appAccentTheme == theme
+                                        ) {
+                                            store.setAccentTheme(theme)
+                                        }
                                     }
+                                    Spacer(minLength: 0)
                                 }
-                                Spacer(minLength: 0)
                             }
                         }
                     }

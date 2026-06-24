@@ -3,6 +3,7 @@ import SwiftUI
 struct StartseiteFamilieView: View {
     @Binding var mode: AppMode
     @Binding var selectedTab: TabItem
+    let onQuickAction: (QuickActionTarget) -> Void
     @EnvironmentObject var store: DataStore
 
     private var dateString: String {
@@ -85,7 +86,9 @@ struct StartseiteFamilieView: View {
         return VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Gemeinsame Termine")
             if upcoming.isEmpty {
-                Text("Noch keine Termine").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary)
+                EmptyStateView(icon: "calendar", text: "Noch keine gemeinsamen Termine", actionTitle: "Termin anlegen") {
+                    onQuickAction(.event)
+                }
             } else {
                 VStack(spacing: 8) {
                     ForEach(upcoming) { occ in
@@ -115,7 +118,9 @@ struct StartseiteFamilieView: View {
         return VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Aufgaben")
             if open.isEmpty {
-                Text("Alles erledigt").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary).padding(.vertical, 4)
+                EmptyStateView(icon: "bell", text: "Keine offenen Aufgaben", actionTitle: "Aufgabe anlegen") {
+                    onQuickAction(.reminder)
+                }
             } else {
                 VStack(spacing: 10) {
                     ForEach(open.prefix(3)) { r in
@@ -141,7 +146,9 @@ struct StartseiteFamilieView: View {
         return VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Einkauf")
             if open.isEmpty {
-                Text("Liste leer").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary).padding(.vertical, 4)
+                EmptyStateView(icon: "cart", text: "Einkaufsliste ist leer", actionTitle: "Artikel anlegen") {
+                    onQuickAction(.shopping)
+                }
             } else {
                 VStack(spacing: 10) {
                     ForEach(open.prefix(3)) { item in
@@ -169,7 +176,9 @@ struct StartseiteFamilieView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Gemeinsame Notizen")
             if store.familyNotes.isEmpty {
-                Text("Noch keine Notizen").font(.system(size: 13)).foregroundColor(AppTheme.textTertiary)
+                EmptyStateView(icon: "note.text", text: "Noch keine gemeinsamen Notizen", actionTitle: "Notiz anlegen") {
+                    onQuickAction(.note)
+                }
             } else {
                 HStack(spacing: 12) {
                     ForEach(store.familyNotes.prefix(2)) { note in

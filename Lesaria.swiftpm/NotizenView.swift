@@ -38,7 +38,13 @@ struct NotizenView: View {
                 SearchBarView(text: $searchText)
 
                 if list.isEmpty {
-                    EmptyStateView(icon: "note.text", text: searchText.isEmpty ? "Noch keine Notizen" : "Keine Ergebnisse")
+                    if searchText.isEmpty {
+                        EmptyStateView(icon: "note.text", text: "Noch keine Notizen", actionTitle: "Notiz anlegen") {
+                            showingAdd = true
+                        }
+                    } else {
+                        EmptyStateView(icon: "magnifyingglass", text: "Keine Ergebnisse")
+                    }
                 } else {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         ForEach(list) { note in
@@ -172,6 +178,7 @@ struct NoteSheet: View {
 
     @State private var title: String
     @State private var bodyText: String
+    @State private var isFamily: Bool
 
     init(mode: AppMode, existing: Note?, isPresented: Binding<Bool>) {
         self.mode = mode
@@ -179,6 +186,7 @@ struct NoteSheet: View {
         self._isPresented = isPresented
         _title = State(initialValue: existing?.title ?? "")
         _bodyText = State(initialValue: existing?.body ?? "")
+        _isFamily = State(initialValue: existing?.isFamily ?? mode == .familie)
     }
 
     var body: some View {
@@ -187,6 +195,7 @@ struct NoteSheet: View {
                   detents: [.medium, .large]) {
             VStack(spacing: 12) {
                 DarkTextField(placeholder: "Titel", text: $title)
+                ScopePicker(isFamily: $isFamily)
                 DarkTextEditor(placeholder: "Notiz schreiben...", text: $bodyText)
             }
         } onSave: {
@@ -194,6 +203,7 @@ struct NoteSheet: View {
             var n = existing ?? Note(title: "", body: "", isFamily: mode == .familie)
             n.title = title
             n.body = bodyText
+            n.isFamily = isFamily
             n.date = Date()
             if existing == nil { store.addNote(n) } else { store.updateNote(n) }
             isPresented = false

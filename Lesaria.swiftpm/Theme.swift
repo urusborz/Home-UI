@@ -48,6 +48,8 @@ struct Palette {
 enum AppAccentTheme: String, CaseIterable, Codable, Identifiable {
     case ocean
     case rubin
+    case sol
+    case tanne
 
     var id: String { rawValue }
 
@@ -55,6 +57,8 @@ enum AppAccentTheme: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .ocean: return "Ocean"
         case .rubin: return "Rubin"
+        case .sol: return "Sol"
+        case .tanne: return "Tanne"
         }
     }
 
@@ -62,6 +66,8 @@ enum AppAccentTheme: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .ocean: return "Frisches Blau & Cyan"
         case .rubin: return "Rubinrot & Violett"
+        case .sol: return "Koralle, Mint & Gold"
+        case .tanne: return "Tanne, Kupfer & Teal"
         }
     }
 
@@ -142,12 +148,88 @@ enum AppAccentTheme: String, CaseIterable, Codable, Identifiable {
                 ringTrack:        Color.white.opacity(0.140),
                 shadow:           Color.black.opacity(0.48)
             )
+        case .sol:
+            if light {
+                return Palette(
+                    background:       Color(red: 0.992, green: 0.962, blue: 0.925),
+                    surface:          Color(red: 1.000, green: 0.992, blue: 0.975),
+                    surfaceElevated:  Color(red: 0.982, green: 0.940, blue: 0.895),
+                    control:          Color(red: 0.520, green: 0.210, blue: 0.125).opacity(0.075),
+                    accent:           Color(red: 0.890, green: 0.295, blue: 0.195),
+                    accentSecondary:  Color(red: 0.030, green: 0.555, blue: 0.560),
+                    success:          Color(red: 0.145, green: 0.675, blue: 0.420),
+                    warning:          Color(red: 0.930, green: 0.620, blue: 0.120),
+                    textPrimary:      Color(red: 0.150, green: 0.075, blue: 0.055),
+                    textSecondary:    Color(red: 0.455, green: 0.330, blue: 0.275),
+                    textTertiary:     Color(red: 0.690, green: 0.560, blue: 0.480),
+                    border:           Color(red: 0.340, green: 0.155, blue: 0.080).opacity(0.105),
+                    separator:        Color(red: 0.340, green: 0.155, blue: 0.080).opacity(0.075),
+                    ringTrack:        Color(red: 0.340, green: 0.155, blue: 0.080).opacity(0.120),
+                    shadow:           Color(red: 0.415, green: 0.165, blue: 0.075).opacity(0.155)
+                )
+            }
+            return Palette(
+                background:       Color(red: 0.095, green: 0.046, blue: 0.034),
+                surface:          Color(red: 0.155, green: 0.082, blue: 0.060),
+                surfaceElevated:  Color(red: 0.210, green: 0.115, blue: 0.085),
+                control:          Color(red: 0.245, green: 0.140, blue: 0.105).opacity(0.94),
+                accent:           Color(red: 1.000, green: 0.405, blue: 0.270),
+                accentSecondary:  Color(red: 0.180, green: 0.780, blue: 0.760),
+                success:          Color(red: 0.310, green: 0.835, blue: 0.535),
+                warning:          Color(red: 1.000, green: 0.705, blue: 0.210),
+                textPrimary:      Color(red: 1.000, green: 0.945, blue: 0.900),
+                textSecondary:    Color(red: 0.805, green: 0.690, blue: 0.610),
+                textTertiary:     Color(red: 0.610, green: 0.505, blue: 0.450),
+                border:           Color.white.opacity(0.105),
+                separator:        Color.white.opacity(0.070),
+                ringTrack:        Color.white.opacity(0.135),
+                shadow:           Color.black.opacity(0.46)
+            )
+        case .tanne:
+            if light {
+                return Palette(
+                    background:       Color(red: 0.930, green: 0.965, blue: 0.938),
+                    surface:          Color(red: 0.985, green: 1.000, blue: 0.988),
+                    surfaceElevated:  Color(red: 0.910, green: 0.956, blue: 0.925),
+                    control:          Color(red: 0.055, green: 0.265, blue: 0.170).opacity(0.075),
+                    accent:           Color(red: 0.045, green: 0.460, blue: 0.300),
+                    accentSecondary:  Color(red: 0.760, green: 0.350, blue: 0.145),
+                    success:          Color(red: 0.105, green: 0.640, blue: 0.330),
+                    warning:          Color(red: 0.865, green: 0.535, blue: 0.145),
+                    textPrimary:      Color(red: 0.045, green: 0.130, blue: 0.095),
+                    textSecondary:    Color(red: 0.285, green: 0.410, blue: 0.340),
+                    textTertiary:     Color(red: 0.505, green: 0.615, blue: 0.545),
+                    border:           Color(red: 0.035, green: 0.165, blue: 0.105).opacity(0.105),
+                    separator:        Color(red: 0.035, green: 0.165, blue: 0.105).opacity(0.080),
+                    ringTrack:        Color(red: 0.035, green: 0.165, blue: 0.105).opacity(0.125),
+                    shadow:           Color(red: 0.040, green: 0.170, blue: 0.105).opacity(0.155)
+                )
+            }
+            return Palette(
+                background:       Color(red: 0.030, green: 0.080, blue: 0.060),
+                surface:          Color(red: 0.060, green: 0.125, blue: 0.095),
+                surfaceElevated:  Color(red: 0.090, green: 0.170, blue: 0.130),
+                control:          Color(red: 0.095, green: 0.190, blue: 0.145).opacity(0.94),
+                accent:           Color(red: 0.190, green: 0.760, blue: 0.500),
+                accentSecondary:  Color(red: 0.960, green: 0.490, blue: 0.220),
+                success:          Color(red: 0.310, green: 0.850, blue: 0.460),
+                warning:          Color(red: 0.980, green: 0.650, blue: 0.250),
+                textPrimary:      Color(red: 0.900, green: 0.980, blue: 0.930),
+                textSecondary:    Color(red: 0.645, green: 0.760, blue: 0.690),
+                textTertiary:     Color(red: 0.455, green: 0.565, blue: 0.505),
+                border:           Color.white.opacity(0.105),
+                separator:        Color.white.opacity(0.072),
+                ringTrack:        Color.white.opacity(0.135),
+                shadow:           Color.black.opacity(0.48)
+            )
         }
     }
 
     static func storedValue(_ rawValue: String?) -> AppAccentTheme {
         switch rawValue {
         case "rubin", "ruby", "sunset": return .rubin
+        case "sol", "sun", "coral": return .sol
+        case "tanne", "forest", "pine": return .tanne
         default: return .ocean
         }
     }
@@ -213,6 +295,18 @@ struct AppTheme {
                 Color(red: 0.285, green: 0.070, blue: 0.185),
                 Color(red: 0.070, green: 0.022, blue: 0.055)
             ]
+        case .sol:
+            return [
+                Color(red: 0.220, green: 0.070, blue: 0.040),
+                Color(red: 0.460, green: 0.165, blue: 0.080),
+                Color(red: 0.060, green: 0.160, blue: 0.145)
+            ]
+        case .tanne:
+            return [
+                Color(red: 0.025, green: 0.115, blue: 0.085),
+                Color(red: 0.055, green: 0.250, blue: 0.170),
+                Color(red: 0.150, green: 0.075, blue: 0.040)
+            ]
         }
     }
 
@@ -234,6 +328,24 @@ struct AppTheme {
                 accentAmber.opacity(0.22),
                 accentSecondary.opacity(0.58),
                 accentGreen.opacity(0.16),
+                accentAmber.opacity(0.00)
+            ]
+        case .sol:
+            return [
+                accentAmber.opacity(0.00),
+                accent.opacity(0.58),
+                accentSecondary.opacity(0.46),
+                accentAmber.opacity(0.50),
+                accentGreen.opacity(0.18),
+                accentAmber.opacity(0.00)
+            ]
+        case .tanne:
+            return [
+                accentAmber.opacity(0.00),
+                accent.opacity(0.56),
+                accentSecondary.opacity(0.42),
+                accentAmber.opacity(0.30),
+                accentGreen.opacity(0.28),
                 accentAmber.opacity(0.00)
             ]
         }

@@ -5,6 +5,7 @@ struct ErinnerungenView: View {
     @EnvironmentObject var store: DataStore
     @State private var showingAdd = false
     @State private var editing: Reminder? = nil
+    @State private var reading: Reminder? = nil
 
     private var list: [Reminder] {
         mode == .persoenlich ? store.personalReminders : store.familyReminders
@@ -56,7 +57,9 @@ struct ErinnerungenView: View {
                 }
 
                 if list.isEmpty {
-                    EmptyStateView(icon: "bell", text: "Noch keine Aufgaben")
+                    EmptyStateView(icon: "bell", text: "Noch keine Aufgaben", actionTitle: "Aufgabe anlegen") {
+                        showingAdd = true
+                    }
                 }
 
                 Spacer(minLength: 20)
@@ -75,6 +78,21 @@ struct ErinnerungenView: View {
             ))
             .environmentObject(store)
         }
+        .sheet(item: $reading) { reminder in
+            ReminderDetailSheet(
+                reminder: reminder,
+                onEdit: {
+                    reading = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { editing = reminder }
+                },
+                onDelete: {
+                    store.deleteReminder(id: reminder.id)
+                    reading = nil
+                },
+                isPresented: Binding(get: { reading != nil }, set: { if !$0 { reading = nil } })
+            )
+            .environmentObject(store)
+        }
     }
 
     private func reminderList(_ items: [Reminder]) -> some View {
@@ -83,6 +101,7 @@ struct ErinnerungenView: View {
                 SwipeToDeleteRow(onDelete: { store.deleteReminder(id: reminder.id) }) {
                     ReminderRow(reminder: reminder).environmentObject(store)
                 }
+                .onTapGesture { reading = reminder }
                 .itemContextMenu(onEdit: { editing = reminder },
                                  onDelete: { store.deleteReminder(id: reminder.id) })
             }
@@ -155,6 +174,104 @@ struct ReminderRow: View {
     }
 }
 
+// MARK: - Reminder Detail
+
+struct ReminderDetailSheet: View {
+    let reminder: Reminder
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    @Binding var isPresented: Bool
+    @EnvironmentObject var store: DataStore
+
+    var body: some View {
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Button { isPresented = false } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 34, height: 34)
+                            .background(AppTheme.controlBackground)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(AppTheme.onAccent)
+                            .frame(width: 34, height: 34)
+                            .background(AppTheme.accent)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(AppTheme.accentAmber)
+                            .frame(width: 34, height: 34)
+                            .background(AppTheme.controlBackground)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 16)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 8) {
+                        StatusPill(text: reminder.isFamily ? "Familie" : "Persönlich", color: reminder.isFamily ? AppTheme.accentPurple : AppTheme.accent)
+                        StatusPill(text: reminder.isCompleted ? "Erledigt" : "Offen", color: reminder.isCompleted ? AppTheme.accentGreen : AppTheme.accentAmber)
+                        if reminder.recurrence != .none {
+                            StatusPill(text: reminder.recurrence.short, color: AppTheme.accentSecondary)
+                        }
+                    }
+                    Text(reminder.title)
+                        .font(.system(size: 27, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let due = reminder.dueDate {
+                        Label(dueLine(due), systemImage: "calendar")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                    Button {
+                        store.toggleReminder(id: reminder.id)
+                        isPresented = false
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: reminder.isCompleted ? "arrow.uturn.backward.circle.fill" : "checkmark.circle.fill")
+                            Text(reminder.isCompleted ? "Wieder öffnen" : "Als erledigt markieren")
+                        }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(AppTheme.onAccent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(reminder.isCompleted ? AppTheme.accentSecondary : AppTheme.accentGreen)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium, style: .continuous))
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                }
+                .glassCard()
+
+                Spacer()
+            }
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
+    }
+
+    private func dueLine(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+        if (c.hour ?? 0) == 0 && (c.minute ?? 0) == 0 {
+            return date.deWeekdayDayMonth
+        }
+        return "\(date.deWeekdayDayMonth), \(date.deTime) Uhr"
+    }
+}
+
 // MARK: - Reminder Sheet (Add + Edit)
 
 struct ReminderSheet: View {
@@ -167,6 +284,7 @@ struct ReminderSheet: View {
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
     @State private var recurrence: Recurrence
+    @State private var isFamily: Bool
 
     init(mode: AppMode, existing: Reminder?, isPresented: Binding<Bool>) {
         self.mode = mode
@@ -176,6 +294,7 @@ struct ReminderSheet: View {
         _hasDueDate = State(initialValue: existing?.dueDate != nil)
         _dueDate = State(initialValue: existing?.dueDate ?? Date())
         _recurrence = State(initialValue: existing?.recurrence ?? .none)
+        _isFamily = State(initialValue: existing?.isFamily ?? mode == .familie)
     }
 
     var body: some View {
@@ -183,6 +302,7 @@ struct ReminderSheet: View {
                   isPresented: $isPresented, detents: [.medium, .large]) {
             VStack(spacing: 14) {
                 DarkTextField(placeholder: "Aufgabe eingeben...", text: $title)
+                ScopePicker(isFamily: $isFamily)
                 DarkToggleRow(title: "Fälligkeitsdatum", isOn: $hasDueDate.animation())
                 if hasDueDate {
                     DatePicker("Fällig am", selection: $dueDate)
@@ -197,6 +317,7 @@ struct ReminderSheet: View {
             guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
             var r = existing ?? Reminder(title: "", isFamily: mode == .familie)
             r.title = title
+            r.isFamily = isFamily
             r.dueDate = hasDueDate ? dueDate : nil
             r.recurrence = hasDueDate ? recurrence : .none
             if existing == nil { store.addReminder(r) } else { store.updateReminder(r) }

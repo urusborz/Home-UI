@@ -51,6 +51,70 @@ enum TrackerSection: String, CaseIterable, Identifiable {
     }
 }
 
+enum QuickActionTarget: String, Identifiable {
+    case event
+    case reminder
+    case note
+    case habit
+    case withdrawal
+    case shopping
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .event: return "Termin"
+        case .reminder: return "Aufgabe"
+        case .note: return "Notiz"
+        case .habit: return "Habit"
+        case .withdrawal: return "Entzug"
+        case .shopping: return "Einkauf"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .event: return "Kalenderpunkt anlegen"
+        case .reminder: return "Aufgabe mit optionaler Fälligkeit"
+        case .note: return "Gedanken oder Infos speichern"
+        case .habit: return "Taegliche Routine tracken"
+        case .withdrawal: return "Abstinenz-Ziel starten"
+        case .shopping: return "Artikel zur Liste hinzufügen"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .event: return "calendar.badge.plus"
+        case .reminder: return "bell.badge.fill"
+        case .note: return "note.text.badge.plus"
+        case .habit: return "checkmark.circle.fill"
+        case .withdrawal: return "flame.fill"
+        case .shopping: return "cart.badge.plus"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .event: return AppTheme.accent
+        case .reminder: return AppTheme.accentBlue
+        case .note: return AppTheme.accentSecondary
+        case .habit: return AppTheme.accentGreen
+        case .withdrawal: return AppTheme.accentAmber
+        case .shopping: return AppTheme.accentPurple
+        }
+    }
+
+    static func options(for mode: AppMode) -> [QuickActionTarget] {
+        switch mode {
+        case .persoenlich:
+            return [.event, .reminder, .note, .habit, .withdrawal]
+        case .familie:
+            return [.event, .reminder, .note, .shopping]
+        }
+    }
+}
+
 // MARK: - Recurrence
 
 enum Recurrence: String, Codable, CaseIterable, Identifiable {

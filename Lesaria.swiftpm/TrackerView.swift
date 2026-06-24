@@ -109,7 +109,9 @@ struct HabitsView: View {
             .glassCard()
 
             if store.habits.isEmpty {
-                EmptyStateView(icon: "checkmark.circle", text: "Noch keine Habits")
+                EmptyStateView(icon: "checkmark.circle", text: "Noch keine Habits", actionTitle: "Habit anlegen") {
+                    showingAdd = true
+                }
             } else {
                 VStack(spacing: 8) {
                     ForEach(store.habits) { habit in
@@ -373,7 +375,9 @@ struct WithdrawalTrackerView: View {
             .glassCard()
 
             if sortedItems.isEmpty {
-                EmptyStateView(icon: "flame", text: "Noch kein Entzug angelegt")
+                EmptyStateView(icon: "flame", text: "Noch kein Entzug angelegt", actionTitle: "Entzug anlegen") {
+                    showingAdd = true
+                }
             } else {
                 VStack(spacing: 10) {
                     ForEach(sortedItems) { item in
@@ -605,7 +609,9 @@ struct ShoppingListView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     if store.shoppingItems.isEmpty {
-                        EmptyStateView(icon: "cart", text: "Einkaufsliste ist leer")
+                        EmptyStateView(icon: "cart", text: "Einkaufsliste ist leer", actionTitle: "Artikel anlegen") {
+                            showingAdd = true
+                        }
                     } else {
                         if !open.isEmpty {
                             VStack(spacing: 8) {

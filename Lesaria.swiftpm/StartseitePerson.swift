@@ -4,6 +4,7 @@ struct StartseitePersoenlichView: View {
     @Binding var mode: AppMode
     @Binding var selectedTab: TabItem
     @Binding var selectedTrackerSection: TrackerSection
+    let onQuickAction: (QuickActionTarget) -> Void
     @EnvironmentObject var store: DataStore
     @State private var confettiTrigger = 0
     @State private var overviewMotion = false
@@ -31,12 +32,14 @@ struct StartseitePersoenlichView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
+            VStack(spacing: 12) {
                 // Header
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(dateString).font(.system(size: 13, weight: .medium)).foregroundColor(AppTheme.textSecondary)
-                        Text(greetingTitle).font(.system(size: 28, weight: .bold, design: .rounded)).foregroundColor(AppTheme.textPrimary)
+                        Text(dateString).font(.system(size: 12, weight: .medium)).foregroundColor(AppTheme.textSecondary)
+                        Text(greetingTitle).font(.system(size: 26, weight: .bold, design: .rounded)).foregroundColor(AppTheme.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
                     }
                     Spacer()
                     HStack(spacing: 6) {
@@ -50,11 +53,12 @@ struct StartseitePersoenlichView: View {
                 adaptiveOverview
                 adaptiveMicroGrid
 
-                Spacer(minLength: 20)
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, AppTheme.phoneScreenPadding)
-            .padding(.bottom, 20)
+            .padding(.bottom, 10)
         }
+        .scrollBounceBehavior(.basedOnSize)
         .overlay(ConfettiView(trigger: confettiTrigger))
         .onChange(of: habitsAllDone) { _, done in
             if done { Haptics.success(); confettiTrigger += 1 }
@@ -108,40 +112,38 @@ struct StartseitePersoenlichView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("Heute im Überblick")
-                    .font(.system(size: 25, weight: .black, design: .rounded))
-                    .tracking(-1.2)
+                    .font(.system(size: 21, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
 
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Nächster Fokus")
-                        .font(.system(size: 12, weight: .heavy))
-                        .tracking(1.1)
+                        .font(.system(size: 11, weight: .heavy))
                         .textCase(.uppercase)
                         .foregroundColor(.white.opacity(0.62))
-                    Text("\(next.name)\nsteht an")
-                        .font(.system(size: 46, weight: .black, design: .rounded))
-                        .tracking(-3.0)
-                        .lineSpacing(3)
+                    Text("\(next.name) steht an")
+                        .font(.system(size: 36, weight: .black, design: .rounded))
                         .foregroundColor(.white)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.70)
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text(next.date.deTime)
-                            .font(.system(size: 38, weight: .black, design: .rounded))
-                            .tracking(-2.1)
+                            .font(.system(size: 31, weight: .black, design: .rounded))
                             .foregroundColor(AppTheme.microPrayer)
                             .shadow(color: AppTheme.microPrayer.opacity(0.45), radius: 24)
                         Text("Uhr · \(next.germanName)")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundColor(.white.opacity(0.65))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
                     }
                 }
-                .padding(.top, 30)
+                .padding(.top, 15)
 
-                Spacer(minLength: 86)
+                Spacer(minLength: 60)
             }
-            .padding(24)
+            .padding(20)
 
             VStack {
                 Spacer()
@@ -149,23 +151,31 @@ struct StartseitePersoenlichView: View {
                     AdaptivePriorityTile(label: "Gebete", value: "\(max(5 - prayersDone, 0)) offen", delay: 0) {
                         openTracker(.gebete)
                     }
-                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                     AdaptivePriorityTile(label: "Habits", value: habitsTotal == 0 ? "0 geplant" : "\(habitsDone)/\(habitsTotal)", delay: 0.9) {
-                        openTracker(.habits)
+                        if habitsTotal == 0 {
+                            onQuickAction(.habit)
+                        } else {
+                            openTracker(.habits)
+                        }
                     }
-                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                     AdaptivePriorityTile(label: "Termine", value: todaysEvents == 0 ? "frei" : "\(todaysEvents) heute", delay: 1.8) {
-                        withAnimation { selectedTab = .kalender }
+                        if todaysEvents == 0 {
+                            onQuickAction(.event)
+                        } else {
+                            withAnimation { selectedTab = .kalender }
+                        }
                     }
-                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .frame(maxWidth: .infinity, minHeight: 52)
                 }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 18)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
             }
         }
-        .frame(minHeight: 330)
-        .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
-        .shadow(color: Color(red: 0.082, green: 0.141, blue: 0.247).opacity(0.19), radius: 45, x: 0, y: 22)
+        .frame(height: 244)
+        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .shadow(color: Color(red: 0.082, green: 0.141, blue: 0.247).opacity(0.17), radius: 30, x: 0, y: 16)
     }
 
     private var adaptiveMicroGrid: some View {
@@ -182,9 +192,9 @@ struct StartseitePersoenlichView: View {
         let nextHabit = store.habits.first(where: { !$0.isDone })?.title
 
         return LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ], spacing: 12) {
+            GridItem(.flexible(), spacing: 10),
+            GridItem(.flexible(), spacing: 10)
+        ], spacing: 10) {
             AdaptiveMicroCard(
                 title: "Habits",
                 subtitle: habitsTotal == 0 ? "noch leer" : "\(habitsDone) von \(habitsTotal) erledigt",
@@ -193,7 +203,11 @@ struct StartseitePersoenlichView: View {
                 color: AppTheme.microHabit,
                 delay: 0
             ) {
-                openTracker(.habits)
+                if habitsTotal == 0 {
+                    onQuickAction(.habit)
+                } else {
+                    openTracker(.habits)
+                }
             }
             AdaptiveMicroCard(
                 title: "Aufgaben",
@@ -203,7 +217,11 @@ struct StartseitePersoenlichView: View {
                 color: AppTheme.microTask,
                 delay: 0.7
             ) {
-                withAnimation { selectedTab = .erinnerungen }
+                if totalTasks == 0 {
+                    onQuickAction(.reminder)
+                } else {
+                    withAnimation { selectedTab = .erinnerungen }
+                }
             }
             AdaptiveMicroCard(
                 title: "Gebete",
@@ -223,7 +241,11 @@ struct StartseitePersoenlichView: View {
                 color: AppTheme.microStatus,
                 delay: 2.1
             ) {
-                openTracker(.entzug)
+                if store.withdrawalItems.isEmpty {
+                    onQuickAction(.withdrawal)
+                } else {
+                    openTracker(.entzug)
+                }
             }
         }
     }
@@ -591,26 +613,25 @@ struct AdaptivePriorityTile: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(label)
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(.system(size: 10, weight: .heavy))
                     .foregroundColor(.white.opacity(0.58))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Text(value)
-                    .font(.system(size: 18, weight: .heavy, design: .rounded))
-                    .tracking(-0.7)
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(10)
             .background(.white.opacity(0.13))
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(.white.opacity(0.17), lineWidth: 1)
             )
-            .offset(y: isFloating ? -4 : 0)
+            .offset(y: isFloating ? -2 : 0)
         }
         .buttonStyle(ScaleButtonStyle())
         .onAppear {
@@ -646,20 +667,19 @@ struct AdaptiveMicroCard: View {
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(title)
-                        .font(.system(size: 26, weight: .black, design: .rounded))
-                        .tracking(-1.4)
+                        .font(.system(size: 21, weight: .black, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
                         .foregroundColor(AppTheme.textPrimary)
                     Text(subtitle)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(AppTheme.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
                     Text(detail)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(AppTheme.textTertiary)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .minimumScaleFactor(0.72)
 
                     Spacer()
@@ -667,25 +687,24 @@ struct AdaptiveMicroCard: View {
                     HStack {
                         Spacer()
                         Text(value)
-                            .font(.system(size: 30, weight: .black, design: .rounded))
-                            .tracking(-2.1)
+                            .font(.system(size: 26, weight: .black, design: .rounded))
                             .foregroundColor(color)
                             .lineLimit(1)
                             .minimumScaleFactor(0.68)
                     }
                 }
-                .padding(17)
+                .padding(14)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 132)
-            .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+            .frame(height: 102)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 34, style: .continuous)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .stroke(AppTheme.isLight ? Color.white.opacity(0.76) : AppTheme.glassBorder, lineWidth: 0.8)
             )
             .shadow(color: AppTheme.shadow.opacity(AppTheme.isLight ? 0.42 : 0.30),
-                    radius: 26, x: 0, y: 14)
-            .contentShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                    radius: 20, x: 0, y: 10)
+            .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
         .buttonStyle(ScaleButtonStyle())
         .onAppear {

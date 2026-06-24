@@ -7,6 +7,7 @@ struct KalenderView: View {
     @State private var viewMode: CalViewMode = .week
     @State private var showingAdd = false
     @State private var editing: CalendarEvent? = nil
+    @State private var reading: EventOccurrence? = nil
 
     enum CalViewMode { case week, month }
 
@@ -92,10 +93,13 @@ struct KalenderView: View {
                     SectionHeader(title: selectedDateLabel, subtitle: "\(eventsForSelected.count) Termine")
 
                     if eventsForSelected.isEmpty {
-                        EmptyStateView(icon: "calendar", text: "Kein Termin an diesem Tag")
+                        EmptyStateView(icon: "calendar", text: "Kein Termin an diesem Tag", actionTitle: "Termin anlegen") {
+                            showingAdd = true
+                        }
                     } else {
                         ForEach(eventsForSelected) { occ in
                             EventRow(event: occ.event, date: occ.date, accentColor: accentColor)
+                                .onTapGesture { reading = occ }
                                 .itemContextMenu(onEdit: { editing = occ.event },
                                                  onDelete: { store.deleteEvent(id: occ.event.id) })
                         }
@@ -118,6 +122,7 @@ struct KalenderView: View {
                         SectionHeader(title: "Demnächst")
                         ForEach(upcoming) { occ in
                             EventRow(event: occ.event, date: occ.date, accentColor: accentColor, showFullDate: true)
+                                .onTapGesture { reading = occ }
                                 .itemContextMenu(onEdit: { editing = occ.event },
                                                  onDelete: { store.deleteEvent(id: occ.event.id) })
                         }
@@ -140,6 +145,21 @@ struct KalenderView: View {
                 set: { if !$0 { editing = nil } }
             ))
             .environmentObject(store)
+        }
+        .sheet(item: $reading) { occurrence in
+            EventDetailSheet(
+                occurrence: occurrence,
+                accentColor: accentColor,
+                onEdit: {
+                    reading = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { editing = occurrence.event }
+                },
+                onDelete: {
+                    store.deleteEvent(id: occurrence.event.id)
+                    reading = nil
+                },
+                isPresented: Binding(get: { reading != nil }, set: { if !$0 { reading = nil } })
+            )
         }
     }
 
@@ -343,6 +363,83 @@ struct EventRow: View {
     }
 }
 
+// MARK: - Event Detail
+
+struct EventDetailSheet: View {
+    let occurrence: EventOccurrence
+    let accentColor: Color
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    @Binding var isPresented: Bool
+
+    private var event: CalendarEvent { occurrence.event }
+
+    var body: some View {
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Button { isPresented = false } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 34, height: 34)
+                            .background(AppTheme.controlBackground)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(AppTheme.onAccent)
+                            .frame(width: 34, height: 34)
+                            .background(accentColor)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(AppTheme.accentAmber)
+                            .frame(width: 34, height: 34)
+                            .background(AppTheme.controlBackground)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 16)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        StatusPill(text: event.isFamily ? "Familie" : "Persönlich", color: event.isFamily ? AppTheme.accentPurple : AppTheme.accent)
+                        if event.recurrence != .none {
+                            StatusPill(text: event.recurrence.short, color: AppTheme.accentSecondary)
+                        }
+                    }
+                    Text(event.title)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Label(dateLine, systemImage: event.hasTime ? "clock.fill" : "calendar")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppTheme.textSecondary)
+                }
+                .glassCard()
+
+                Spacer()
+            }
+            .padding(.horizontal, AppTheme.phoneScreenPadding)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
+    }
+
+    private var dateLine: String {
+        event.hasTime ? "\(occurrence.date.deWeekdayDayMonth), \(occurrence.date.deTime) Uhr" : occurrence.date.deWeekdayDayMonth
+    }
+}
+
 // MARK: - Calendar Task Row
 
 struct CalendarReminderRow: View {
@@ -398,6 +495,7 @@ struct EventSheet: View {
     @State private var date: Date
     @State private var hasTime: Bool
     @State private var recurrence: Recurrence
+    @State private var isFamily: Bool
 
     init(mode: AppMode, existing: CalendarEvent?, defaultDate: Date, isPresented: Binding<Bool>) {
         self.mode = mode
@@ -407,6 +505,7 @@ struct EventSheet: View {
         _date = State(initialValue: existing?.date ?? defaultDate)
         _hasTime = State(initialValue: existing?.hasTime ?? true)
         _recurrence = State(initialValue: existing?.recurrence ?? .none)
+        _isFamily = State(initialValue: existing?.isFamily ?? mode == .familie)
     }
 
     var body: some View {
@@ -414,6 +513,7 @@ struct EventSheet: View {
                   isPresented: $isPresented, detents: [.medium, .large]) {
             VStack(spacing: 14) {
                 DarkTextField(placeholder: "Titel", text: $title)
+                ScopePicker(isFamily: $isFamily)
                 DarkToggleRow(title: "Mit Uhrzeit", isOn: $hasTime.animation())
                 DatePicker("Datum",
                            selection: $date,
@@ -430,6 +530,7 @@ struct EventSheet: View {
             e.title = title
             e.date = date
             e.hasTime = hasTime
+            e.isFamily = isFamily
             e.recurrence = recurrence
             if existing == nil { store.addEvent(e) } else { store.updateEvent(e) }
             isPresented = false
