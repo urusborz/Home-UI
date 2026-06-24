@@ -74,31 +74,20 @@ struct StartseitePersoenlichView: View {
         let next = store.nextPrayer()
         let habitsDone = store.habits.filter(\.isDone).count
         let habitsTotal = store.habits.count
-        let longestStreak = store.withdrawalItems.map { $0.cleanDays() }.max() ?? 0
+        let todaysEvents = store.eventOccurrences(store.personalEvents, on: Date()).count
 
         return ZStack {
             RoundedRectangle(cornerRadius: 34, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [
-                            Color(red: 0.067, green: 0.102, blue: 0.180),
-                            Color(red: 0.098, green: 0.184, blue: 0.365),
-                            Color(red: 0.031, green: 0.051, blue: 0.102)
-                        ],
+                        colors: AppTheme.heroBaseColors,
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
 
             AngularGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.905, green: 0.608, blue: 0.094).opacity(0.00),
-                    Color(red: 0.905, green: 0.608, blue: 0.094).opacity(0.58),
-                    Color(red: 0.145, green: 0.471, blue: 0.906).opacity(0.16),
-                    Color(red: 0.459, green: 0.349, blue: 1.0).opacity(0.54),
-                    Color(red: 0.078, green: 0.721, blue: 0.541).opacity(0.18),
-                    Color(red: 0.905, green: 0.608, blue: 0.094).opacity(0.00)
-                ]),
+                gradient: Gradient(colors: AppTheme.heroGlowColors),
                 center: .center,
                 angle: .degrees(210)
             )
@@ -118,45 +107,31 @@ struct StartseitePersoenlichView: View {
                 )
 
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Heute im Überblick")
-                            .font(.system(size: 26, weight: .black, design: .rounded))
-                            .tracking(-1.3)
-                            .foregroundColor(.white)
-                        Text("Was ist jetzt gerade wichtig?")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.62))
-                    }
-                    Spacer()
-                    Text(dayModeLabel)
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 9)
-                        .background(.white.opacity(0.13))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 1))
-                }
+                Text("Heute im Überblick")
+                    .font(.system(size: 25, weight: .black, design: .rounded))
+                    .tracking(-1.2)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 14) {
                     Text("Nächster Fokus")
                         .font(.system(size: 12, weight: .heavy))
                         .tracking(1.1)
                         .textCase(.uppercase)
                         .foregroundColor(.white.opacity(0.62))
-                    Text("\(next.name)\nbald")
-                        .font(.system(size: 48, weight: .black, design: .rounded))
-                        .tracking(-3.8)
-                        .lineSpacing(-7)
+                    Text("\(next.name)\nsteht an")
+                        .font(.system(size: 46, weight: .black, design: .rounded))
+                        .tracking(-3.0)
+                        .lineSpacing(3)
                         .foregroundColor(.white)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text(next.date.deTime)
-                            .font(.system(size: 38, weight: .light, design: .rounded))
-                            .tracking(-2.8)
-                            .foregroundColor(Color(red: 1.0, green: 0.768, blue: 0.384))
-                            .shadow(color: Color(red: 1.0, green: 0.768, blue: 0.384).opacity(0.45), radius: 24)
+                            .font(.system(size: 38, weight: .black, design: .rounded))
+                            .tracking(-2.1)
+                            .foregroundColor(AppTheme.microPrayer)
+                            .shadow(color: AppTheme.microPrayer.opacity(0.45), radius: 24)
                         Text("Uhr · \(next.germanName)")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(.white.opacity(0.65))
@@ -171,11 +146,17 @@ struct StartseitePersoenlichView: View {
             VStack {
                 Spacer()
                 HStack(spacing: 9) {
-                    AdaptivePriorityTile(label: "Gebete", value: "\(prayersDone)/5 offen", delay: 0)
+                    AdaptivePriorityTile(label: "Gebete", value: "\(max(5 - prayersDone, 0)) offen", delay: 0) {
+                        openTracker(.gebete)
+                    }
                         .frame(maxWidth: .infinity, minHeight: 64)
-                    AdaptivePriorityTile(label: "Habits", value: "\(habitsDone)/\(habitsTotal)", delay: 0.9)
+                    AdaptivePriorityTile(label: "Habits", value: habitsTotal == 0 ? "0 geplant" : "\(habitsDone)/\(habitsTotal)", delay: 0.9) {
+                        openTracker(.habits)
+                    }
                         .frame(maxWidth: .infinity, minHeight: 64)
-                    AdaptivePriorityTile(label: "Entzug", value: "Tag \(max(longestStreak, 0))", delay: 1.8)
+                    AdaptivePriorityTile(label: "Termine", value: todaysEvents == 0 ? "frei" : "\(todaysEvents) heute", delay: 1.8) {
+                        withAnimation { selectedTab = .kalender }
+                    }
                         .frame(maxWidth: .infinity, minHeight: 64)
                 }
                 .padding(.horizontal, 18)
@@ -195,7 +176,10 @@ struct StartseitePersoenlichView: View {
         let habitsTotal = store.habits.count
         let openTasks = store.personalReminders.filter { !$0.isCompleted }.count
         let totalTasks = store.personalReminders.count
+        let nextOpenTask = store.sortedReminders(store.personalReminders.filter { !$0.isCompleted }).first?.title
         let longestStreak = store.withdrawalItems.map { $0.cleanDays() }.max() ?? 0
+        let activeWithdrawal = store.withdrawalItems.sorted { $0.cleanHours() > $1.cleanHours() }.first?.title
+        let nextHabit = store.habits.first(where: { !$0.isDone })?.title
 
         return LazyVGrid(columns: [
             GridItem(.flexible(), spacing: 12),
@@ -203,50 +187,44 @@ struct StartseitePersoenlichView: View {
         ], spacing: 12) {
             AdaptiveMicroCard(
                 title: "Habits",
-                subtitle: habitsDone >= habitsTotal && habitsTotal > 0 ? "alles erledigt" : "fast erledigt",
+                subtitle: habitsTotal == 0 ? "noch leer" : "\(habitsDone) von \(habitsTotal) erledigt",
+                detail: nextHabit.map { "Nächster Habit: \($0)" } ?? (habitsTotal == 0 ? "Lege deinen ersten Habit an" : "Alle heutigen Habits geschafft"),
                 value: "\(habitsDone)/\(habitsTotal)",
-                color: Color(red: 0.078, green: 0.721, blue: 0.541),
+                color: AppTheme.microHabit,
                 delay: 0
             ) {
                 openTracker(.habits)
             }
             AdaptiveMicroCard(
                 title: "Aufgaben",
-                subtitle: openTasks == 0 ? "alles erledigt" : "noch offen",
+                subtitle: openTasks == 0 ? "alles erledigt" : "\(openTasks) offen",
+                detail: nextOpenTask.map { "Als Nächstes: \($0)" } ?? "Heute frei von offenen Aufgaben",
                 value: "\(max(totalTasks - openTasks, 0))/\(totalTasks)",
-                color: Color(red: 0.145, green: 0.471, blue: 0.906),
+                color: AppTheme.microTask,
                 delay: 0.7
             ) {
                 withAnimation { selectedTab = .erinnerungen }
             }
             AdaptiveMicroCard(
                 title: "Gebete",
-                subtitle: "\(next.name) ist als Nächstes",
+                subtitle: "\(prayersDone) von 5 erledigt",
+                detail: "\(next.name) um \(next.date.deTime) Uhr",
                 value: "\(prayersDone)/5",
-                color: Color(red: 0.905, green: 0.608, blue: 0.094),
+                color: AppTheme.microPrayer,
                 delay: 1.4
             ) {
                 openTracker(.gebete)
             }
             AdaptiveMicroCard(
                 title: "Status",
-                subtitle: "stabil bleiben",
+                subtitle: longestStreak == 0 ? "stabil starten" : "Entzug Tag \(longestStreak)",
+                detail: activeWithdrawal.map { "Fokus: \($0)" } ?? "Noch kein Entzug aktiv",
                 value: "\(longestStreak)",
-                color: Color(red: 0.459, green: 0.349, blue: 1.0),
+                color: AppTheme.microStatus,
                 delay: 2.1
             ) {
                 openTracker(.entzug)
             }
-        }
-    }
-
-    private var dayModeLabel: String {
-        let h = Calendar.current.component(.hour, from: .now)
-        switch h {
-        case 5..<12: return "Morgenmodus"
-        case 12..<18: return "Tagesmodus"
-        case 18..<22: return "Abendmodus"
-        default: return "Nachtmodus"
         }
     }
 
@@ -606,31 +584,35 @@ struct AdaptivePriorityTile: View {
     let label: String
     let value: String
     let delay: Double
+    let action: () -> Void
     @State private var isFloating = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(label)
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(0.58))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            Text(value)
-                .font(.system(size: 18, weight: .heavy, design: .rounded))
-                .tracking(-0.7)
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(label)
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundColor(.white.opacity(0.58))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Text(value)
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .tracking(-0.7)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(.white.opacity(0.13))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(.white.opacity(0.17), lineWidth: 1)
+            )
+            .offset(y: isFloating ? -4 : 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(.white.opacity(0.13))
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(.white.opacity(0.17), lineWidth: 1)
-        )
-        .offset(y: isFloating ? -4 : 0)
+        .buttonStyle(ScaleButtonStyle())
         .onAppear {
             withAnimation(.easeInOut(duration: 4).delay(delay).repeatForever(autoreverses: true)) {
                 isFloating = true
@@ -642,6 +624,7 @@ struct AdaptivePriorityTile: View {
 struct AdaptiveMicroCard: View {
     let title: String
     let subtitle: String
+    let detail: String
     let value: String
     let color: Color
     let delay: Double
@@ -653,12 +636,6 @@ struct AdaptiveMicroCard: View {
             ZStack(alignment: .bottomTrailing) {
                 RoundedRectangle(cornerRadius: 34, style: .continuous)
                     .fill(AppTheme.isLight ? Color.white.opacity(0.72) : AppTheme.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 34, style: .continuous)
-                            .stroke(AppTheme.isLight ? Color.white.opacity(0.76) : AppTheme.glassBorder, lineWidth: 0.8)
-                    )
-                    .shadow(color: Color(red: 0.082, green: 0.141, blue: 0.247).opacity(AppTheme.isLight ? 0.14 : 0.22),
-                            radius: 26, x: 0, y: 14)
 
                 RoundedRectangle(cornerRadius: 36, style: .continuous)
                     .fill(color.opacity(pulse ? 0.18 : 0.12))
@@ -677,8 +654,13 @@ struct AdaptiveMicroCard: View {
                     Text(subtitle)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(AppTheme.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .minimumScaleFactor(0.78)
+                    Text(detail)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(AppTheme.textTertiary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.72)
 
                     Spacer()
 
@@ -695,7 +677,14 @@ struct AdaptiveMicroCard: View {
                 .padding(17)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 116)
+            .frame(height: 132)
+            .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 34, style: .continuous)
+                    .stroke(AppTheme.isLight ? Color.white.opacity(0.76) : AppTheme.glassBorder, lineWidth: 0.8)
+            )
+            .shadow(color: AppTheme.shadow.opacity(AppTheme.isLight ? 0.42 : 0.30),
+                    radius: 26, x: 0, y: 14)
             .contentShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
         }
         .buttonStyle(ScaleButtonStyle())

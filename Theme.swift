@@ -47,18 +47,21 @@ struct Palette {
 
 enum AppAccentTheme: String, CaseIterable, Codable, Identifiable {
     case ocean
+    case rubin
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .ocean: return "Ocean"
+        case .rubin: return "Rubin"
         }
     }
 
     var subtitle: String {
         switch self {
         case .ocean: return "Frisches Blau & Cyan"
+        case .rubin: return "Rubinrot & Violett"
         }
     }
 
@@ -102,11 +105,51 @@ enum AppAccentTheme: String, CaseIterable, Codable, Identifiable {
                 ringTrack:        Color.white.opacity(0.13),
                 shadow:           Color.black.opacity(0.45)
             )
+        case .rubin:
+            if light {
+                return Palette(
+                    background:       Color(red: 0.988, green: 0.947, blue: 0.966),
+                    surface:          Color(red: 1.0,   green: 0.985, blue: 0.992),
+                    surfaceElevated:  Color(red: 0.988, green: 0.930, blue: 0.960),
+                    control:          Color(red: 0.420, green: 0.055, blue: 0.200).opacity(0.07),
+                    accent:           Color(red: 0.835, green: 0.110, blue: 0.365),
+                    accentSecondary:  Color(red: 0.505, green: 0.245, blue: 0.930),
+                    success:          Color(red: 0.060, green: 0.645, blue: 0.465),
+                    warning:          Color(red: 0.965, green: 0.520, blue: 0.185),
+                    textPrimary:      Color(red: 0.135, green: 0.050, blue: 0.095),
+                    textSecondary:    Color(red: 0.455, green: 0.315, blue: 0.390),
+                    textTertiary:     Color(red: 0.670, green: 0.530, blue: 0.610),
+                    border:           Color(red: 0.250, green: 0.045, blue: 0.130).opacity(0.10),
+                    separator:        Color(red: 0.250, green: 0.045, blue: 0.130).opacity(0.08),
+                    ringTrack:        Color(red: 0.250, green: 0.045, blue: 0.130).opacity(0.13),
+                    shadow:           Color(red: 0.330, green: 0.055, blue: 0.145).opacity(0.16)
+                )
+            }
+            return Palette(
+                background:       Color(red: 0.085, green: 0.025, blue: 0.052),
+                surface:          Color(red: 0.145, green: 0.060, blue: 0.105),
+                surfaceElevated:  Color(red: 0.190, green: 0.080, blue: 0.145),
+                control:          Color(red: 0.210, green: 0.100, blue: 0.170).opacity(0.94),
+                accent:           Color(red: 0.980, green: 0.220, blue: 0.475),
+                accentSecondary:  Color(red: 0.680, green: 0.370, blue: 1.0),
+                success:          Color(red: 0.180, green: 0.805, blue: 0.590),
+                warning:          Color(red: 1.0, green: 0.560, blue: 0.240),
+                textPrimary:      Color(red: 0.990, green: 0.935, blue: 0.965),
+                textSecondary:    Color(red: 0.785, green: 0.650, blue: 0.735),
+                textTertiary:     Color(red: 0.575, green: 0.455, blue: 0.540),
+                border:           Color.white.opacity(0.105),
+                separator:        Color.white.opacity(0.070),
+                ringTrack:        Color.white.opacity(0.140),
+                shadow:           Color.black.opacity(0.48)
+            )
         }
     }
 
     static func storedValue(_ rawValue: String?) -> AppAccentTheme {
-        return .ocean
+        switch rawValue {
+        case "rubin", "ruby", "sunset": return .rubin
+        default: return .ocean
+        }
     }
 }
 
@@ -117,7 +160,9 @@ struct AppTheme {
         AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appAppearance") ?? "") ?? .dark
     }
 
-    static var accentTheme: AppAccentTheme { .ocean }
+    static var accentTheme: AppAccentTheme {
+        AppAccentTheme.storedValue(UserDefaults.standard.string(forKey: "appAccentTheme"))
+    }
 
     static var isLight: Bool { appearance == .light }
 
@@ -154,6 +199,51 @@ struct AppTheme {
     static var accentAmber: Color { p.warning }
     static var accentPurple: Color { p.accentSecondary }
 
+    static var heroBaseColors: [Color] {
+        switch accentTheme {
+        case .ocean:
+            return [
+                Color(red: 0.067, green: 0.102, blue: 0.180),
+                Color(red: 0.098, green: 0.184, blue: 0.365),
+                Color(red: 0.031, green: 0.051, blue: 0.102)
+            ]
+        case .rubin:
+            return [
+                Color(red: 0.135, green: 0.034, blue: 0.078),
+                Color(red: 0.285, green: 0.070, blue: 0.185),
+                Color(red: 0.070, green: 0.022, blue: 0.055)
+            ]
+        }
+    }
+
+    static var heroGlowColors: [Color] {
+        switch accentTheme {
+        case .ocean:
+            return [
+                accentAmber.opacity(0.00),
+                accentAmber.opacity(0.58),
+                accent.opacity(0.16),
+                accentSecondary.opacity(0.54),
+                accentGreen.opacity(0.18),
+                accentAmber.opacity(0.00)
+            ]
+        case .rubin:
+            return [
+                accentAmber.opacity(0.00),
+                accent.opacity(0.62),
+                accentAmber.opacity(0.22),
+                accentSecondary.opacity(0.58),
+                accentGreen.opacity(0.16),
+                accentAmber.opacity(0.00)
+            ]
+        }
+    }
+
+    static var microHabit: Color { accentGreen }
+    static var microTask: Color { accent }
+    static var microPrayer: Color { accentAmber }
+    static var microStatus: Color { accentSecondary }
+
     // Separators
     static var separator: Color { p.separator }
 
@@ -176,16 +266,33 @@ struct AppTheme {
 struct GlassCard: ViewModifier {
     var padding: CGFloat = 16
     var radius: CGFloat = AppTheme.radiusLarge
+    @State private var glow = false
 
     func body(content: Content) -> some View {
         content
             .padding(padding)
-            .background(AppTheme.surface)
+            .background {
+                ZStack(alignment: .bottomTrailing) {
+                    AppTheme.surface
+                    RoundedRectangle(cornerRadius: 34, style: .continuous)
+                        .fill(AppTheme.accent.opacity(glow ? 0.105 : 0.055))
+                        .frame(width: 118, height: 118)
+                        .rotationEffect(.degrees(glow ? 34 : 24))
+                        .scaleEffect(glow ? 1.08 : 1)
+                        .offset(x: glow ? 28 : 44, y: glow ? 34 : 48)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .strokeBorder(AppTheme.glassBorder, lineWidth: 0.8)
             )
+            .shadow(color: AppTheme.shadow.opacity(0.22), radius: 18, x: 0, y: 10)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 5.2).repeatForever(autoreverses: true)) {
+                    glow = true
+                }
+            }
     }
 }
 
@@ -228,7 +335,8 @@ struct SectionHeader: View {
     var body: some View {
         HStack(alignment: .bottom) {
             Text(title)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 21, weight: .black, design: .rounded))
+                .tracking(-0.7)
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
             if let sub = subtitle {
