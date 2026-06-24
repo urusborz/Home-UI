@@ -43,22 +43,26 @@ jobs:
           set -euo pipefail
 
           PRODUCT_DIR="build/Build/Products/Release-iphoneos"
-          EXECUTABLE_SRC="$PRODUCT_DIR/Meine App"
+          APP_SOURCE="$PRODUCT_DIR/Meine App.app"
           APP_DIR="Payload/HomeUI.app"
 
           echo "Product directory contents:"
           find "$PRODUCT_DIR" -maxdepth 2 -print
 
-          if [ ! -f "$EXECUTABLE_SRC" ]; then
-            echo "Expected executable not found: $EXECUTABLE_SRC"
+          if [ ! -d "$APP_SOURCE" ]; then
+            echo "Expected app bundle not found: $APP_SOURCE"
+            exit 1
+          fi
+
+          if [ ! -f "$APP_SOURCE/Meine App" ]; then
+            echo "Expected executable not found: $APP_SOURCE/Meine App"
             exit 1
           fi
 
           rm -rf Payload HomeUI.ipa
-          mkdir -p "$APP_DIR"
-          cp "$EXECUTABLE_SRC" "$APP_DIR/HomeUI"
-          chmod +x "$APP_DIR/HomeUI"
-          printf 'APPL????' > "$APP_DIR/PkgInfo"
+          mkdir -p Payload
+          cp -R "$APP_SOURCE" "$APP_DIR"
+          chmod +x "$APP_DIR/Meine App"
 
           ICON_SOURCE=".github/assets/AppIconSource.jpg"
           if [ ! -f "$ICON_SOURCE" ]; then
@@ -80,89 +84,16 @@ jobs:
           generate_icon "AppIcon83.5x83.5@2x.png" 167
           generate_icon "AppIcon1024.png" 1024
 
-          cat > "$APP_DIR/Info.plist" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleDevelopmentRegion</key>
-              <string>en</string>
-              <key>CFBundleDisplayName</key>
-              <string>Home UI</string>
-              <key>CFBundleExecutable</key>
-              <string>HomeUI</string>
-              <key>CFBundleIcons</key>
-              <dict>
-                  <key>CFBundlePrimaryIcon</key>
-                  <dict>
-                      <key>CFBundleIconFiles</key>
-                      <array>
-                          <string>AppIcon60x60</string>
-                      </array>
-                      <key>UIPrerenderedIcon</key>
-                      <false/>
-                  </dict>
-              </dict>
-              <key>CFBundleIcons~ipad</key>
-              <dict>
-                  <key>CFBundlePrimaryIcon</key>
-                  <dict>
-                      <key>CFBundleIconFiles</key>
-                      <array>
-                          <string>AppIcon76x76</string>
-                          <string>AppIcon83.5x83.5</string>
-                      </array>
-                      <key>UIPrerenderedIcon</key>
-                      <false/>
-                  </dict>
-              </dict>
-              <key>CFBundleIdentifier</key>
-              <string>com.urusborz.homeui</string>
-              <key>CFBundleInfoDictionaryVersion</key>
-              <string>6.0</string>
-              <key>CFBundleName</key>
-              <string>HomeUI</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>CFBundleShortVersionString</key>
-              <string>1.0</string>
-              <key>CFBundleSupportedPlatforms</key>
-              <array>
-                  <string>iPhoneOS</string>
-              </array>
-              <key>CFBundleVersion</key>
-              <string>1</string>
-              <key>LSRequiresIPhoneOS</key>
-              <true/>
-              <key>MinimumOSVersion</key>
-              <string>18.0</string>
-              <key>UIDeviceFamily</key>
-              <array>
-                  <integer>1</integer>
-                  <integer>2</integer>
-              </array>
-              <key>UIRequiredDeviceCapabilities</key>
-              <array>
-                  <string>arm64</string>
-              </array>
-              <key>UILaunchScreen</key>
-              <dict/>
-              <key>UISupportedInterfaceOrientations</key>
-              <array>
-                  <string>UIInterfaceOrientationPortrait</string>
-                  <string>UIInterfaceOrientationLandscapeLeft</string>
-                  <string>UIInterfaceOrientationLandscapeRight</string>
-              </array>
-              <key>UISupportedInterfaceOrientations~ipad</key>
-              <array>
-                  <string>UIInterfaceOrientationPortrait</string>
-                  <string>UIInterfaceOrientationPortraitUpsideDown</string>
-                  <string>UIInterfaceOrientationLandscapeLeft</string>
-                  <string>UIInterfaceOrientationLandscapeRight</string>
-              </array>
-          </dict>
-          </plist>
-          PLIST
+          set_plist_string() {
+            local key="$1"
+            local value="$2"
+            /usr/libexec/PlistBuddy -c "Set :$key $value" "$APP_DIR/Info.plist" 2>/dev/null || \
+              /usr/libexec/PlistBuddy -c "Add :$key string $value" "$APP_DIR/Info.plist"
+          }
+
+          set_plist_string "CFBundleDisplayName" "Home UI"
+          set_plist_string "CFBundleName" "HomeUI"
+          set_plist_string "CFBundleIdentifier" "com.urusborz.homeui"
 
           plutil -lint "$APP_DIR/Info.plist"
           /usr/bin/zip -r -y HomeUI.ipa Payload
