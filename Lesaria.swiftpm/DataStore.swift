@@ -20,6 +20,13 @@ class DataStore: ObservableObject {
     @Published var appAppearance: AppAppearance = .dark
     @Published var appAccentTheme: AppAccentTheme = .ocean
     @Published var displayName: String = ""
+    @Published var supabaseProjectURL: String = SupabaseConfig.defaultProjectURL
+    @Published var supabaseAnonKey: String = SupabaseConfig.defaultAnonKey
+    @Published var supabaseSyncID: String = SupabaseConfig.defaultSyncID
+    @Published var supabaseSyncToken: String = SupabaseConfig.defaultSyncToken
+    @Published var isSyncing: Bool = false
+    @Published var syncStatusMessage: String = ""
+    @Published var lastSupabaseSyncAt: Date?
 
     // MARK: - Init
 
@@ -329,6 +336,27 @@ class DataStore: ObservableObject {
         save()
     }
 
+    func setSupabaseProjectURL(_ value: String) {
+        supabaseProjectURL = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        save()
+    }
+
+    func setSupabaseAnonKey(_ value: String) {
+        supabaseAnonKey = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        save()
+    }
+
+    func setSupabaseSyncID(_ value: String) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        supabaseSyncID = trimmed.isEmpty ? SupabaseConfig.defaultSyncID : trimmed
+        save()
+    }
+
+    func setSupabaseSyncToken(_ value: String) {
+        supabaseSyncToken = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        save()
+    }
+
     // Called once at app start: request permission and refresh all scheduled notifications.
     func bootstrapNotifications() {
         NotificationManager.shared.requestAuthorization()
@@ -351,9 +379,7 @@ class DataStore: ObservableObject {
     }
 
     func exportJSON() -> String {
-        let payload = BackupPayload(events: events, reminders: reminders, notes: notes,
-                                    shoppingItems: shoppingItems, withdrawalItems: withdrawalItems,
-                                    habits: habits, prayerDone: prayerDone)
+        let payload = makeBackupPayload()
         guard let data = try? backupEncoder().encode(payload),
               let str = String(data: data, encoding: .utf8) else { return "" }
         return str
@@ -361,7 +387,7 @@ class DataStore: ObservableObject {
 
     func exportFileURL() -> URL? {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
-        let name = "MeineApp-Backup-\(f.string(from: Date())).json"
+        let name = "Lesaria-Backup-\(f.string(from: Date())).json"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
         do {
             try exportJSON().data(using: .utf8)?.write(to: url)
@@ -374,6 +400,98 @@ class DataStore: ObservableObject {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let data = trimmed.data(using: .utf8),
               let payload = try? backupDecoder().decode(BackupPayload.self, from: data) else { return false }
+        applyBackupPayload(payload)
+        save()
+        bootstrapNotifications()
+        return true
+    }
+
+    func pushToSupabase() {
+        Task { await runSupabasePush() }
+    }
+
+    func pullFromSupabase() {
+        Task { await runSupabasePull() }
+    }
+
+    func syncWithSupabase() {
+        Task { await runSupabaseSync() }
+    }
+
+    @MainActor
+    private func runSupabasePush() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        syncStatusMessage = "Sync: Upload laeuft..."
+        do {
+            let snapshot = try await supabaseService().upsertSnapshot(makeBackupPayload())
+            lastSupabaseSyncAt = snapshot.updatedAt ?? Date()
+            save()
+            syncStatusMessage = "Upload abgeschlossen."
+            Haptics.success()
+        } catch {
+            syncStatusMessage = error.localizedDescription
+            Haptics.warning()
+        }
+        isSyncing = false
+    }
+
+    @MainActor
+    private func runSupabasePull() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        syncStatusMessage = "Sync: Download laeuft..."
+        do {
+            let snapshot = try await supabaseService().fetchSnapshot()
+            applyBackupPayload(snapshot.payload)
+            lastSupabaseSyncAt = snapshot.updatedAt ?? Date()
+            save()
+            bootstrapNotifications()
+            syncStatusMessage = "Download abgeschlossen."
+            Haptics.success()
+        } catch {
+            syncStatusMessage = error.localizedDescription
+            Haptics.warning()
+        }
+        isSyncing = false
+    }
+
+    @MainActor
+    private func runSupabaseSync() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        syncStatusMessage = "Sync laeuft..."
+        do {
+            let remote = try? await supabaseService().fetchSnapshot()
+            if let remote, let remoteUpdatedAt = remote.updatedAt,
+               let localSyncedAt = lastSupabaseSyncAt,
+               remoteUpdatedAt > localSyncedAt {
+                applyBackupPayload(remote.payload)
+                lastSupabaseSyncAt = remoteUpdatedAt
+                save()
+                bootstrapNotifications()
+                syncStatusMessage = "Remote-Stand geladen."
+            } else {
+                let snapshot = try await supabaseService().upsertSnapshot(makeBackupPayload())
+                lastSupabaseSyncAt = snapshot.updatedAt ?? Date()
+                save()
+                syncStatusMessage = "Lokaler Stand hochgeladen."
+            }
+            Haptics.success()
+        } catch {
+            syncStatusMessage = error.localizedDescription
+            Haptics.warning()
+        }
+        isSyncing = false
+    }
+
+    private func makeBackupPayload() -> BackupPayload {
+        BackupPayload(events: events, reminders: reminders, notes: notes,
+                      shoppingItems: shoppingItems, withdrawalItems: withdrawalItems,
+                      habits: habits, prayerDone: prayerDone)
+    }
+
+    private func applyBackupPayload(_ payload: BackupPayload) {
         events = payload.events
         reminders = payload.reminders
         notes = payload.notes
@@ -381,9 +499,17 @@ class DataStore: ObservableObject {
         withdrawalItems = payload.withdrawalItems
         habits = payload.habits
         prayerDone = payload.prayerDone
-        save()
-        bootstrapNotifications()
-        return true
+    }
+
+    private func supabaseService() -> SupabaseSyncService {
+        SupabaseSyncService(
+            configuration: SupabaseSyncConfiguration(
+                projectURL: supabaseProjectURL,
+                anonKey: supabaseAnonKey,
+                syncID: supabaseSyncID,
+                syncToken: supabaseSyncToken
+            )
+        )
     }
 
     func prayersDoneCount(on date: Date = Date()) -> Int {
@@ -431,6 +557,11 @@ class DataStore: ObservableObject {
         UserDefaults.standard.set(appAppearance.rawValue, forKey: "appAppearance")
         UserDefaults.standard.set(appAccentTheme.rawValue, forKey: "appAccentTheme")
         UserDefaults.standard.set(displayName, forKey: "displayName")
+        UserDefaults.standard.set(supabaseProjectURL, forKey: "supabaseProjectURL")
+        UserDefaults.standard.set(supabaseAnonKey, forKey: "supabaseAnonKey")
+        UserDefaults.standard.set(supabaseSyncID, forKey: "supabaseSyncID")
+        UserDefaults.standard.set(supabaseSyncToken, forKey: "supabaseSyncToken")
+        UserDefaults.standard.set(lastSupabaseSyncAt, forKey: "lastSupabaseSyncAt")
     }
 
     private func load() {
@@ -447,6 +578,11 @@ class DataStore: ObservableObject {
         appAppearance = AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appAppearance") ?? "") ?? .dark
         appAccentTheme = AppAccentTheme.storedValue(UserDefaults.standard.string(forKey: "appAccentTheme"))
         displayName = UserDefaults.standard.string(forKey: "displayName") ?? ""
+        supabaseProjectURL = UserDefaults.standard.string(forKey: "supabaseProjectURL") ?? SupabaseConfig.defaultProjectURL
+        supabaseAnonKey = UserDefaults.standard.string(forKey: "supabaseAnonKey") ?? SupabaseConfig.defaultAnonKey
+        supabaseSyncID = UserDefaults.standard.string(forKey: "supabaseSyncID") ?? SupabaseConfig.defaultSyncID
+        supabaseSyncToken = UserDefaults.standard.string(forKey: "supabaseSyncToken") ?? SupabaseConfig.defaultSyncToken
+        lastSupabaseSyncAt = UserDefaults.standard.object(forKey: "lastSupabaseSyncAt") as? Date
 
         if isFirstLaunch {
             UserDefaults.standard.set(true, forKey: "hasLaunched")

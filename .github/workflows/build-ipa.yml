@@ -21,15 +21,15 @@ jobs:
           xcode-version: latest-stable
 
       - name: Show available schemes
-        working-directory: Home-UI.swiftpm
+        working-directory: Lesaria.swiftpm
         run: xcodebuild -list || true
 
       - name: Build app binary without signing
-        working-directory: Home-UI.swiftpm
+        working-directory: Lesaria.swiftpm
         run: |
           set -o pipefail
           xcodebuild \
-            -scheme "Meine App" \
+            -scheme "Lesaria" \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -derivedDataPath ../build \
@@ -43,8 +43,8 @@ jobs:
           set -euo pipefail
 
           PRODUCT_DIR="build/Build/Products/Release-iphoneos"
-          APP_SOURCE="$PRODUCT_DIR/Meine App.app"
-          APP_DIR="Payload/HomeUI.app"
+          APP_SOURCE="$PRODUCT_DIR/Lesaria.app"
+          APP_DIR="Payload/Lesaria.app"
 
           echo "Product directory contents:"
           find "$PRODUCT_DIR" -maxdepth 2 -print
@@ -54,15 +54,15 @@ jobs:
             exit 1
           fi
 
-          if [ ! -f "$APP_SOURCE/Meine App" ]; then
-            echo "Expected executable not found: $APP_SOURCE/Meine App"
+          if [ ! -f "$APP_SOURCE/Lesaria" ]; then
+            echo "Expected executable not found: $APP_SOURCE/Lesaria"
             exit 1
           fi
 
-          rm -rf Payload HomeUI.ipa
+          rm -rf Payload Lesaria.ipa
           mkdir -p Payload
           cp -R "$APP_SOURCE" "$APP_DIR"
-          chmod +x "$APP_DIR/Meine App"
+          chmod +x "$APP_DIR/Lesaria"
 
           ICON_SOURCE=".github/assets/AppIconSource.jpg"
           if [ ! -f "$ICON_SOURCE" ]; then
@@ -91,29 +91,29 @@ jobs:
               /usr/libexec/PlistBuddy -c "Add :$key string $value" "$APP_DIR/Info.plist"
           }
 
-          set_plist_string "CFBundleDisplayName" "Home UI"
-          set_plist_string "CFBundleName" "HomeUI"
-          set_plist_string "CFBundleIdentifier" "com.urusborz.homeui"
+          set_plist_string "CFBundleDisplayName" "Lesaria"
+          set_plist_string "CFBundleName" "Lesaria"
+          set_plist_string "CFBundleIdentifier" "com.urusborz.lesaria"
 
           plutil -lint "$APP_DIR/Info.plist"
-          /usr/bin/zip -r -y HomeUI.ipa Payload
+          /usr/bin/zip -r -y Lesaria.ipa Payload
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HomeUI-unsigned-ipa
-          path: HomeUI.ipa
+          name: Lesaria-unsigned-ipa
+          path: Lesaria.ipa
 
       - name: Create GitHub Release with IPA
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: "HomeUI Build #${{ github.run_number }}"
+          name: "Lesaria Build #${{ github.run_number }}"
           body: |
             Automatischer Build vom ${{ github.sha }}
 
             **Zum Installieren:** IPA herunterladen → Sideloadly → aufs iPhone spielen.
-          files: HomeUI.ipa
+          files: Lesaria.ipa
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
