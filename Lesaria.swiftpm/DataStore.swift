@@ -573,7 +573,7 @@ class DataStore: ObservableObject {
 
     private func supabaseService() -> SupabaseSyncService {
         let session = authSession
-        SupabaseSyncService(
+        return SupabaseSyncService(
             configuration: SupabaseSyncConfiguration(
                 projectURL: SupabaseConfig.projectURL,
                 anonKey: SupabaseConfig.anonKey,
