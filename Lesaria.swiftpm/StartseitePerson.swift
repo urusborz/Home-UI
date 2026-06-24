@@ -194,7 +194,7 @@ struct StartseitePersoenlichView: View {
         return LazyVGrid(columns: [
             GridItem(.flexible(), spacing: 10),
             GridItem(.flexible(), spacing: 10)
-        ], spacing: 10) {
+        ], spacing: 12) {
             AdaptiveMicroCard(
                 title: "Habits",
                 subtitle: habitsTotal == 0 ? "noch leer" : "\(habitsDone) von \(habitsTotal) erledigt",
@@ -665,7 +665,7 @@ struct AdaptiveMicroCard: View {
                     .scaleEffect(pulse ? 1.05 : 1)
                     .offset(x: 36 + (pulse ? -6 : 0), y: 42 + (pulse ? -5 : 0))
 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 7) {
                     Text(title)
                         .font(.system(size: 21, weight: .black, design: .rounded))
                         .lineLimit(1)
@@ -693,10 +693,11 @@ struct AdaptiveMicroCard: View {
                             .minimumScaleFactor(0.68)
                     }
                 }
-                .padding(14)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 15)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 102)
+            .frame(height: 132)
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)

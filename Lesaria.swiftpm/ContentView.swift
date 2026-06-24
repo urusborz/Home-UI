@@ -226,8 +226,10 @@ struct BottomNavBarView: View {
                 )
             }
         }
-        .padding(.vertical, 9)
+        .padding(.vertical, 6)
         .padding(.horizontal, 8)
+        .frame(minHeight: 70)
+        .contentShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
         .liquidTabBarGlass(cornerRadius: 30)
     }
 }
@@ -249,14 +251,15 @@ struct TabBarButtonView: View {
                     .minimumScaleFactor(0.72)
             }
             .foregroundColor(isSelected ? AppTheme.onAccent : AppTheme.textTertiary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 58)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .background(
                 Group {
                     if isSelected {
                         Color.clear
                             .liquidSelectedTabGlass(cornerRadius: 20)
                             .padding(2)
+                            .allowsHitTesting(false)
                     }
                 }
             )
