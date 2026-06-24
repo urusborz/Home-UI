@@ -294,7 +294,7 @@ struct ReminderSheet: View {
         _hasDueDate = State(initialValue: existing?.dueDate != nil)
         _dueDate = State(initialValue: existing?.dueDate ?? Date())
         _recurrence = State(initialValue: existing?.recurrence ?? .none)
-        _isFamily = State(initialValue: existing?.isFamily ?? mode == .familie)
+        _isFamily = State(initialValue: existing?.isFamily ?? (mode == .familie))
     }
 
     var body: some View {

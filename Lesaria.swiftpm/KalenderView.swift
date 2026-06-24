@@ -505,7 +505,7 @@ struct EventSheet: View {
         _date = State(initialValue: existing?.date ?? defaultDate)
         _hasTime = State(initialValue: existing?.hasTime ?? true)
         _recurrence = State(initialValue: existing?.recurrence ?? .none)
-        _isFamily = State(initialValue: existing?.isFamily ?? mode == .familie)
+        _isFamily = State(initialValue: existing?.isFamily ?? (mode == .familie))
     }
 
     var body: some View {

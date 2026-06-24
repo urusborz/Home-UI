@@ -186,7 +186,7 @@ struct NoteSheet: View {
         self._isPresented = isPresented
         _title = State(initialValue: existing?.title ?? "")
         _bodyText = State(initialValue: existing?.body ?? "")
-        _isFamily = State(initialValue: existing?.isFamily ?? mode == .familie)
+        _isFamily = State(initialValue: existing?.isFamily ?? (mode == .familie))
     }
 
     var body: some View {
