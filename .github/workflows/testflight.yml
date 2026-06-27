@@ -1,0 +1,118 @@
+name: Upload to TestFlight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload-testflight:
+    runs-on: macos-15
+    permissions:
+      contents: read
+
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Validate secrets
+        run: |
+          set -euo pipefail
+          test -n "$APPLE_TEAM_ID"
+          test -n "$APP_STORE_CONNECT_KEY_ID"
+          test -n "$APP_STORE_CONNECT_ISSUER_ID"
+          test -n "$APP_STORE_CONNECT_API_KEY_BASE64"
+
+      - name: Prepare App Store Connect API key
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys" private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 -D > "private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          cp "private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8" "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          chmod 600 "private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8" "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+
+      - name: Update build number
+        env:
+          CI_BUILD_NUMBER: ${{ github.run_number }}
+          CI_PRIMARY_REPOSITORY_PATH: ${{ github.workspace }}
+        run: ./ci_scripts/ci_pre_xcodebuild.sh
+
+      - name: Create export options
+        run: |
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Archive
+        working-directory: Lesaria.swiftpm
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "Lesaria" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath ../build/Lesaria.xcarchive \
+            -derivedDataPath ../build/DerivedData \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "../private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            clean archive
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/Lesaria.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lesaria-TestFlight-IPA
+          path: build/export/*.ipa
+
+      - name: Upload to TestFlight
+        run: |
+          set -euo pipefail
+          IPA_PATH="$(find build/export -maxdepth 1 -name '*.ipa' | head -n 1)"
+          if [ -z "$IPA_PATH" ]; then
+            echo "No IPA found in build/export"
+            exit 1
+          fi
+          xcrun altool \
+            --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"

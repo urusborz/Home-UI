@@ -21,9 +21,18 @@ Diese Repo ist fuer TestFlight vorbereitet. Die letzten Schritte passieren im Ap
 5. Nutze `main` als Branch.
 6. Setze die Distribution auf TestFlight.
 
-## Xcode Cloud
+## GitHub Actions Upload von Windows aus
 
-Xcode Cloud fuehrt `ci_scripts/ci_pre_xcodebuild.sh` vor dem Build aus. Das Script setzt `bundleVersion` auf die aktuelle Cloud-Buildnummer, damit jeder Upload eine eindeutige Buildnummer hat.
+Da Xcode Cloud den ersten Workflow in Xcode erwartet, nutzt diese Repo fuer Windows den Workflow `.github/workflows/testflight.yml`.
+
+Lege in GitHub > Settings > Secrets and variables > Actions diese Repository Secrets an:
+
+- `APPLE_TEAM_ID`: Team ID aus dem Apple Developer Account
+- `APP_STORE_CONNECT_KEY_ID`: Key ID des App Store Connect API Keys
+- `APP_STORE_CONNECT_ISSUER_ID`: Issuer ID aus App Store Connect API
+- `APP_STORE_CONNECT_API_KEY_BASE64`: Inhalt der heruntergeladenen `.p8` API-Key-Datei als Base64
+
+Der Workflow setzt `bundleVersion` ueber `ci_scripts/ci_pre_xcodebuild.sh` auf die aktuelle GitHub-Run-Nummer, baut auf `macos-15`, signiert automatisch und laedt die IPA zu TestFlight hoch.
 
 ## CloudKit Schema
 
