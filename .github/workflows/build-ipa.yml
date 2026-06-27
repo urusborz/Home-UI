@@ -1,9 +1,7 @@
-name: Build IPA
+name: Build unsigned IPA (legacy)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
   build-ipa:
@@ -112,7 +110,8 @@ jobs:
           body: |
             Automatischer Build vom ${{ github.sha }}
 
-            **Zum Installieren:** IPA herunterladen → Sideloadly → aufs iPhone spielen.
+            **Legacy-Fallback:** IPA herunterladen -> Sideloadly -> aufs iPhone spielen.
+            Fuer TestFlight bitte Xcode Cloud/App Store Connect verwenden.
           files: Lesaria.ipa
           make_latest: true
         env:

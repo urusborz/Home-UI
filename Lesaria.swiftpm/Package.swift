@@ -16,8 +16,9 @@ let package = Package(
         .iOSApplication(
             name: "Lesaria",
             targets: ["AppModule"],
-            displayVersion: "1.0",
-            bundleVersion: "1",
+            bundleIdentifier: "com.urusborz.lesaria",
+            displayVersion: "1.1",
+            bundleVersion: "34",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.pink),
             supportedDeviceFamilies: [
@@ -36,6 +37,12 @@ let package = Package(
         .executableTarget(
             name: "AppModule",
             path: ".",
+            exclude: [
+                "Lesaria.entitlements"
+            ],
+            resources: [
+                .process("PrivacyInfo.xcprivacy")
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("BareSlashRegexLiterals")
             ]

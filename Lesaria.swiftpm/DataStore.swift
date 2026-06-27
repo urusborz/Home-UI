@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 
 class DataStore: ObservableObject {
@@ -22,14 +23,15 @@ class DataStore: ObservableObject {
     @Published var displayName: String = ""
     @Published var isSyncing: Bool = false
     @Published var syncStatusMessage: String = ""
-    @Published var lastSupabaseSyncAt: Date?
-    @Published var authSession: SupabaseAuthSession?
+    @Published var lastCloudSyncAt: Date?
+    @Published var authSession: AppleAccountSession?
     @Published var isAuthenticating: Bool = false
     @Published var authStatusMessage: String = ""
 
-    private var pendingSupabasePush: Task<Void, Never>?
+    private var pendingCloudKitPush: Task<Void, Never>?
     private var isApplyingRemoteSnapshot = false
-    private let authSessionKey = "supabaseAuthSession"
+    private let authSessionKey = "appleAccountSession"
+    private let keychainService = "com.urusborz.lesaria.auth"
 
     var isAuthenticated: Bool {
         authSession != nil
@@ -41,7 +43,8 @@ class DataStore: ObservableObject {
         loadAuthSession()
         load()
         resetHabitsIfNewDay()
-        refreshSessionIfNeededThenSync()
+        validateAppleCredentialState()
+        syncWithCloudKit()
     }
 
     // MARK: - Computed: Personal / Family splits (sorted)
@@ -394,91 +397,74 @@ class DataStore: ObservableObject {
         return true
     }
 
-    func signUp(email: String, password: String) {
-        Task { await runSignUp(email: email, password: password) }
-    }
-
-    func signIn(email: String, password: String) {
-        Task { await runSignIn(email: email, password: password) }
+    func signInWithApple(_ result: Result<ASAuthorization, Error>) {
+        Task { await handleAppleSignIn(result) }
     }
 
     func signOut() {
         authSession = nil
-        lastSupabaseSyncAt = nil
-        UserDefaults.standard.removeObject(forKey: authSessionKey)
-        UserDefaults.standard.removeObject(forKey: "lastSupabaseSyncAt")
+        lastCloudSyncAt = nil
+        KeychainStore.delete(service: keychainService, account: authSessionKey)
+        UserDefaults.standard.removeObject(forKey: "lastCloudSyncAt")
         authStatusMessage = ""
         syncStatusMessage = ""
     }
 
-    func syncWithSupabase() {
-        Task { await runSupabaseSync() }
-    }
-
-    func refreshSessionIfNeededThenSync() {
-        Task {
-            await refreshSessionIfNeeded()
-            await runSupabaseSync()
-        }
-    }
-
     @MainActor
-    private func runSignUp(email: String, password: String) async {
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
         guard !isAuthenticating else { return }
         isAuthenticating = true
         authStatusMessage = ""
-        do {
-            let session = try await SupabaseAuthService().signUp(email: email, password: password)
+        defer { isAuthenticating = false }
+
+        switch result {
+        case let .success(authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                authStatusMessage = "Apple Anmeldung konnte nicht gelesen werden."
+                return
+            }
+            let session = AppleAccountSession(credential: credential)
             setAuthSession(session)
-            authStatusMessage = "Account erstellt."
-            await runSupabaseSync()
-        } catch {
+            if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               let fullName = session.fullName,
+               !fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                displayName = fullName
+                save()
+            }
+            authStatusMessage = "Mit Apple angemeldet."
+            await runCloudKitSync()
+        case let .failure(error):
             authStatusMessage = error.localizedDescription
         }
-        isAuthenticating = false
     }
 
-    @MainActor
-    private func runSignIn(email: String, password: String) async {
-        guard !isAuthenticating else { return }
-        isAuthenticating = true
-        authStatusMessage = ""
-        do {
-            let session = try await SupabaseAuthService().signIn(email: email, password: password)
-            setAuthSession(session)
-            authStatusMessage = "Angemeldet."
-            await runSupabaseSync()
-        } catch {
-            authStatusMessage = error.localizedDescription
-        }
-        isAuthenticating = false
+    func syncWithCloudKit() {
+        Task { await runCloudKitSync() }
     }
 
-    @MainActor
-    private func refreshSessionIfNeeded() async {
-        guard let session = authSession, session.needsRefresh else { return }
-        do {
-            let refreshed = try await SupabaseAuthService().refresh(session)
-            setAuthSession(refreshed)
-        } catch {
-            signOut()
-            authStatusMessage = "Bitte neu anmelden."
+    private func validateAppleCredentialState() {
+        guard let userID = authSession?.userID else { return }
+        ASAuthorizationAppleIDProvider().getCredentialState(forUserID: userID) { [weak self] state, _ in
+            DispatchQueue.main.async {
+                guard state == .revoked || state == .notFound else { return }
+                self?.signOut()
+                self?.authStatusMessage = "Bitte erneut mit Apple anmelden."
+            }
         }
     }
 
     @MainActor
-    private func runSupabasePush() async {
-        await refreshSessionIfNeeded()
-        guard SupabaseConfig.isConfigured, authSession != nil else { return }
+    private func runCloudKitPush() async {
+        guard authSession != nil else { return }
         guard !isSyncing else { return }
-        pendingSupabasePush?.cancel()
+        pendingCloudKitPush?.cancel()
         isSyncing = true
-        syncStatusMessage = "Sync laeuft..."
+        syncStatusMessage = "iCloud Sync laeuft..."
         do {
-            let snapshot = try await supabaseService().upsertSnapshot(makeBackupPayload())
-            lastSupabaseSyncAt = snapshot.updatedAt ?? Date()
+            let snapshot = try await CloudKitSyncService().upsertSnapshot(makeBackupPayload())
+            lastCloudSyncAt = snapshot.updatedAt ?? Date()
             save()
-            syncStatusMessage = "Sync abgeschlossen."
+            syncStatusMessage = "iCloud Sync abgeschlossen."
             Haptics.success()
         } catch {
             syncStatusMessage = error.localizedDescription
@@ -488,28 +474,27 @@ class DataStore: ObservableObject {
     }
 
     @MainActor
-    private func runSupabaseSync() async {
-        await refreshSessionIfNeeded()
-        guard SupabaseConfig.isConfigured, authSession != nil else { return }
+    private func runCloudKitSync() async {
+        guard authSession != nil else { return }
         guard !isSyncing else { return }
-        pendingSupabasePush?.cancel()
+        pendingCloudKitPush?.cancel()
         isSyncing = true
-        syncStatusMessage = "Sync laeuft..."
+        syncStatusMessage = "iCloud Sync laeuft..."
         do {
-            let remote = try? await supabaseService().fetchSnapshot()
+            let remote = try? await CloudKitSyncService().fetchSnapshot()
             if let remote, shouldApplyRemoteSnapshot(remote) {
                 isApplyingRemoteSnapshot = true
                 applyBackupPayload(remote.payload)
-                lastSupabaseSyncAt = remote.updatedAt ?? Date()
+                lastCloudSyncAt = remote.updatedAt ?? Date()
                 save()
                 isApplyingRemoteSnapshot = false
                 bootstrapNotifications()
-                syncStatusMessage = "Remote-Stand geladen."
+                syncStatusMessage = "iCloud-Stand geladen."
             } else {
-                let snapshot = try await supabaseService().upsertSnapshot(makeBackupPayload())
-                lastSupabaseSyncAt = snapshot.updatedAt ?? Date()
+                let snapshot = try await CloudKitSyncService().upsertSnapshot(makeBackupPayload())
+                lastCloudSyncAt = snapshot.updatedAt ?? Date()
                 save()
-                syncStatusMessage = "Lokaler Stand hochgeladen."
+                syncStatusMessage = "Lokaler Stand in iCloud."
             }
             Haptics.success()
         } catch {
@@ -520,11 +505,11 @@ class DataStore: ObservableObject {
         isSyncing = false
     }
 
-    private func shouldApplyRemoteSnapshot(_ snapshot: SupabaseSnapshot) -> Bool {
+    private func shouldApplyRemoteSnapshot(_ snapshot: CloudKitSnapshot) -> Bool {
         guard let remoteUpdatedAt = snapshot.updatedAt else {
-            return lastSupabaseSyncAt == nil
+            return lastCloudSyncAt == nil
         }
-        guard let localSyncedAt = lastSupabaseSyncAt else {
+        guard let localSyncedAt = lastCloudSyncAt else {
             return true
         }
         return remoteUpdatedAt > localSyncedAt
@@ -546,38 +531,27 @@ class DataStore: ObservableObject {
         prayerDone = payload.prayerDone
     }
 
-    private func supabaseService() -> SupabaseSyncService {
-        let session = authSession
-        return SupabaseSyncService(
-            configuration: SupabaseSyncConfiguration(
-                projectURL: SupabaseConfig.projectURL,
-                anonKey: SupabaseConfig.anonKey,
-                accessToken: session?.accessToken ?? "",
-                userID: session?.userID ?? ""
-            )
-        )
-    }
-
-    private func scheduleSupabasePush() {
-        guard SupabaseConfig.isConfigured, authSession != nil, !isSyncing, !isApplyingRemoteSnapshot else { return }
-        pendingSupabasePush?.cancel()
-        pendingSupabasePush = Task {
+    private func scheduleCloudKitPush() {
+        guard authSession != nil, !isSyncing, !isApplyingRemoteSnapshot else { return }
+        pendingCloudKitPush?.cancel()
+        pendingCloudKitPush = Task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             guard !Task.isCancelled else { return }
-            await runSupabasePush()
+            await runCloudKitPush()
         }
     }
 
-    private func setAuthSession(_ session: SupabaseAuthSession) {
+    private func setAuthSession(_ session: AppleAccountSession) {
         authSession = session
         if let data = try? JSONEncoder().encode(session) {
-            UserDefaults.standard.set(data, forKey: authSessionKey)
+            try? KeychainStore.save(data, service: keychainService, account: authSessionKey)
         }
     }
 
     private func loadAuthSession() {
-        guard let data = UserDefaults.standard.data(forKey: authSessionKey),
-              let session = try? JSONDecoder().decode(SupabaseAuthSession.self, from: data) else {
+        guard let storedData = try? KeychainStore.load(service: keychainService, account: authSessionKey),
+              let data = storedData,
+              let session = try? JSONDecoder().decode(AppleAccountSession.self, from: data) else {
             authSession = nil
             return
         }
@@ -629,8 +603,8 @@ class DataStore: ObservableObject {
         UserDefaults.standard.set(appAppearance.rawValue, forKey: "appAppearance")
         UserDefaults.standard.set(appAccentTheme.rawValue, forKey: "appAccentTheme")
         UserDefaults.standard.set(displayName, forKey: "displayName")
-        UserDefaults.standard.set(lastSupabaseSyncAt, forKey: "lastSupabaseSyncAt")
-        scheduleSupabasePush()
+        UserDefaults.standard.set(lastCloudSyncAt, forKey: "lastCloudSyncAt")
+        scheduleCloudKitPush()
     }
 
     private func load() {
@@ -647,7 +621,7 @@ class DataStore: ObservableObject {
         appAppearance = AppAppearance(rawValue: UserDefaults.standard.string(forKey: "appAppearance") ?? "") ?? .dark
         appAccentTheme = AppAccentTheme.storedValue(UserDefaults.standard.string(forKey: "appAccentTheme"))
         displayName = UserDefaults.standard.string(forKey: "displayName") ?? ""
-        lastSupabaseSyncAt = UserDefaults.standard.object(forKey: "lastSupabaseSyncAt") as? Date
+        lastCloudSyncAt = UserDefaults.standard.object(forKey: "lastCloudSyncAt") as? Date
 
         if isFirstLaunch {
             UserDefaults.standard.set(true, forKey: "hasLaunched")

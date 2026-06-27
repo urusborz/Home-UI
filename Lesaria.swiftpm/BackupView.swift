@@ -81,20 +81,44 @@ struct BackupSheet: View {
                     VStack(alignment: .leading, spacing: 14) {
                         SectionHeader(title: "Account")
                         HStack(spacing: 12) {
-                            Image(systemName: "person.crop.circle.fill")
+                            Image(systemName: "icloud.fill")
                                 .font(.system(size: 24))
                                 .foregroundColor(AppTheme.accent)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(store.authSession?.email ?? "Angemeldet")
+                                Text(store.authSession?.displayTitle ?? "Apple Account")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(AppTheme.textPrimary)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.75)
-                                Text(store.lastSupabaseSyncAt.map { "Sync: \($0.deWeekdayDayMonth), \($0.deTime)" } ?? "Sync aktiv")
+                                Text(store.lastCloudSyncAt.map { "iCloud Sync: \($0.deWeekdayDayMonth), \($0.deTime)" } ?? "iCloud Sync aktiv")
                                     .font(.system(size: 11))
                                     .foregroundColor(AppTheme.textTertiary)
                             }
                             Spacer()
+                        }
+
+                        Button {
+                            store.syncWithCloudKit()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                Text(store.isSyncing ? "Synchronisiert..." : "Jetzt synchronisieren")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(AppTheme.onAccent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(AppTheme.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMedium, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(store.isSyncing)
+
+                        if !store.syncStatusMessage.isEmpty {
+                            Text(store.syncStatusMessage)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                         Button {

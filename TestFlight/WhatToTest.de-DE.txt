@@ -1,0 +1,7 @@
+Lesaria TestFlight-Build
+
+- Anmeldung ueber Apple Account
+- iCloud/CloudKit Sync fuer persoenliche Daten
+- Kalender, Aufgaben, Notizen, Tracker und Gebetszeiten pruefen
+- Backup/Import weiterhin als Sicherheitsnetz pruefen
+
