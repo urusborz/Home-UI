@@ -142,12 +142,25 @@ jobs:
             -derivedDataPath build/DerivedData \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
+            CODE_SIGN_ENTITLEMENTS="build/ci_source/Lesaria.entitlements" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
             CODE_SIGNING_ALLOWED=YES \
             CODE_SIGNING_REQUIRED=YES \
             clean archive
+
+      - name: Verify signed entitlements
+        run: |
+          set -euo pipefail
+          APP_PATH="build/Lesaria.xcarchive/Products/Applications/Lesaria.app"
+          ENTITLEMENTS_PLIST="$RUNNER_TEMP/signed_entitlements.plist"
+          test -d "$APP_PATH"
+          codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_PLIST"
+          /usr/libexec/PlistBuddy -c "Print :com.apple.developer.applesignin:0" "$ENTITLEMENTS_PLIST" | grep -qx "Default"
+          /usr/libexec/PlistBuddy -c "Print :com.apple.developer.icloud-services:0" "$ENTITLEMENTS_PLIST" | grep -qx "CloudKit"
+          /usr/libexec/PlistBuddy -c "Print :com.apple.developer.icloud-container-identifiers:0" "$ENTITLEMENTS_PLIST" | grep -qx "iCloud.com.urusborz.lesaria"
+          echo "Signed entitlements include Sign in with Apple and CloudKit."
 
       - name: Export IPA
         run: |
