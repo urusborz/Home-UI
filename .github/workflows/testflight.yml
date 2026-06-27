@@ -96,6 +96,7 @@ jobs:
           mkdir -p build/ci_source
           find Lesaria.swiftpm -maxdepth 1 -name '*.swift' ! -name 'Package.swift' -exec cp {} build/ci_source/ \;
           cp Lesaria.swiftpm/Info.plist build/ci_source/Info.plist
+          cp Lesaria.swiftpm/LaunchScreen.storyboard build/ci_source/LaunchScreen.storyboard
           cp Lesaria.swiftpm/Lesaria.entitlements build/ci_source/Lesaria.entitlements
           cp Lesaria.swiftpm/PrivacyInfo.xcprivacy build/ci_source/PrivacyInfo.xcprivacy
           cp -R Lesaria.swiftpm/Assets.xcassets build/ci_source/Assets.xcassets
