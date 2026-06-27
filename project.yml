@@ -14,19 +14,18 @@ targets:
     platform: iOS
     deploymentTarget: "18.0"
     sources:
-      - path: Lesaria.swiftpm
+      - path: build/ci_source
         includes:
           - "*.swift"
         excludes:
-          - Package.swift
           - Lesaria.entitlements
     resources:
-      - path: Lesaria.swiftpm/Assets.xcassets
-      - path: Lesaria.swiftpm/PrivacyInfo.xcprivacy
+      - path: build/ci_source/Assets.xcassets
+      - path: build/ci_source/PrivacyInfo.xcprivacy
     entitlements:
-      path: Lesaria.swiftpm/Lesaria.entitlements
+      path: build/ci_source/Lesaria.entitlements
     info:
-      path: Lesaria.swiftpm/Info.plist
+      path: build/ci_source/Info.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.urusborz.lesaria
